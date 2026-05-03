@@ -3,10 +3,11 @@
 Scripts in this folder support a full flow:
 
 1. download article JSON backups
-2. extract editable text fields into plain text files
-3. prepare minimal update payloads from edited text files
-4. manage the article tags
-5. deploy payloads to WA REST API
+2. find and filter articles
+3. extract editable text fields into plain text files
+4. prepare minimal update payloads from edited text files
+5. manage the article tags
+6. deploy payloads to WA REST API
 
 
 # Requirements
@@ -33,8 +34,22 @@ Copy `settings-template.cfg` to `settings.cfg` and fill values:
 - `x_auth_token`
 - `x_application_key`
 - `proxy` (optional; leave empty to use `https://www.worldanvil.com`)
+- `root_folder` (optional; base folder for all data files, e.g. `~/data`)
 
 The scripts read `settings.cfg` from this folder (`tools/backup`).
+
+When `root_folder` is set, all article data is read from and written to
+`<root_folder>/<world_name>/`. Without it, the scripts use `<world_name>/`
+relative to the script folder.
+
+Examples with `root_folder=~/data` and `world_name=alana`:
+
+| Folder | Path |
+|---|---|
+| JSON backups | `~/data/alana/json/` |
+| Extracted fields | `~/data/alana/edit/` |
+| Deploy payloads | `~/data/alana/deploy/` |
+| Writing exports | `~/data/alana/writing/` |
 
 
 # Scripts
@@ -56,7 +71,58 @@ Parameters:
 - none
 
 
-## 2) Extract Editable Fields
+## 2) Find Articles
+
+Script:
+
+- Linux/macOS: `python3 find.py <filters> [options]`
+
+Purpose:
+
+- searches article JSON files in `<world_name>/json/`
+- prints matching file paths (one per line, full path) sorted by last updated date, newest first
+- all filters combine: only articles matching every given filter are returned
+
+Usage:
+
+```bash
+usage: find.py [-h] [--title TITLE] [--slug SLUG] [--text TEXT]
+               [--tags TAGS] [--type ENTITY_TYPE] [--state STATE]
+               [--all] [--case]
+```
+
+Filters (at least one required):
+
+- `--title <string>` find articles with `<string>` in the title
+- `--slug <string>` find articles with `<string>` in the slug
+- `--text <string>` find articles with `<string>` in any writing field
+- `--tags <tag list>` find articles that have **all** of the given comma-separated tags
+- `--type <entityClass>` filter by entity class (e.g. `Person`, `Location`, `Myth`)
+- `--state <state>` filter by article state (`public`, `draft`, `wip`)
+
+Options:
+
+- `--all` search all stored versions of each article (default: latest version only)
+- `--case` case-sensitive search (default: case-insensitive); applies to all string filters; tag matching is always exact
+
+Examples:
+
+```bash
+# all published articles mentioning "dragon" in text
+python3 find.py --text dragon --state public
+
+# all Person articles tagged "undead" or "vampire"
+python3 find.py --type Person --tags "undead,vampire"
+
+# drafts with "council" in the title, case-sensitive
+python3 find.py --title council --state draft --case
+
+# pipe into extract to bulk-export writing fields
+python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} --writing
+```
+
+
+## 3) Extract Editable Fields
 
 Script:
 
@@ -98,7 +164,7 @@ Examples:
   exports writing files for all published articles in `<world_name>/json/`
 
 
-## 3) Prepare Deploy Payload for One Article
+## 4) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -131,7 +197,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 4) Tag Manager
+## 5) Tag Manager
 
 Script:
 
@@ -255,7 +321,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 5) Deploy Payloads
+## 6) Deploy Payloads
 
 Script:
 
