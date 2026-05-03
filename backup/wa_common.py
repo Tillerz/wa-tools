@@ -68,8 +68,11 @@ def chdir_to_script_dir(file_path):
     os.chdir(Path(file_path).resolve().parent)
 
 
-def world_paths(world_name):
-    root = Path(world_name)
+def world_paths(world_name, root_folder=None):
+    if root_folder:
+        root = Path(root_folder).expanduser() / world_name
+    else:
+        root = Path(world_name)
     return {
         "root": root,
         "json": root / "json",

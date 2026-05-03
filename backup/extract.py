@@ -140,7 +140,7 @@ args = parser.parse_args()
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg['world_name']
 world_id = cfg['world_id']
-paths = world_paths(world_name)
+paths = world_paths(world_name, cfg.get('root_folder'))
 json_folder = paths["json"]
 output_folder = paths["edit"]
 
@@ -162,7 +162,7 @@ except OSError as error:
 if args.writing and args.all:
     for jdata in load_latest_articles(json_folder):
         if is_published_writing_article(jdata):
-            write_writing_file(world_name, jdata)
+            write_writing_file(paths["root"], jdata)
     raise SystemExit(0)
 
 if args.filename is None:
@@ -181,7 +181,7 @@ if file_input.is_file():
     if args.writing:
         if not is_published_writing_article(jdata):
             raise SystemExit(0)
-        if not write_writing_file(world_name, jdata):
+        if not write_writing_file(paths["root"], jdata):
             print("Could not write writing export: missing or invalid entityClass/slug.")
             raise SystemExit(1)
         raise SystemExit(0)
