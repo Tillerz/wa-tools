@@ -78,7 +78,7 @@ def world_paths(world_name, root_folder=None):
         "json": root / "json",
         "edit": root / "edit",
         "deploy": root / "deploy",
-        "writing": root / "writing",
+        "text-export": root / "text-export",
     }
 
 

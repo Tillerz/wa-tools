@@ -49,7 +49,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | JSON backups | `~/data/alana/json/` |
 | Extracted fields | `~/data/alana/edit/` |
 | Deploy payloads | `~/data/alana/deploy/` |
-| Writing exports | `~/data/alana/writing/` |
+| Text exports | `~/data/alana/text-export/` |
 
 
 # Scripts
@@ -95,9 +95,9 @@ Filters (at least one required):
 
 - `--title <string>` find articles with `<string>` in the title
 - `--slug <string>` find articles with `<string>` in the slug
-- `--text <string>` find articles with `<string>` in any writing field
+- `--text <string>` find articles with `<string>` in any major article text field
 - `--tags <tag list>` find articles that have **all** of the given comma-separated tags
-- `--type <entityClass>` filter by entity class (e.g. `Person`, `Location`, `Myth`)
+- `--type <entityClass>` filter by entity class (Article, Condition, Document, Ethnicity, Formation, Item, Landmark, Language, Law, Location, Material, MilitaryConflict, Myth, Organization, Person, Plot, Profession, Prose, Rank, Ritual, Settlement, Species, Vehicle)
 - `--state <state>` filter by article state (`public`, `draft`, `wip`)
 
 Options:
@@ -117,8 +117,8 @@ python3 find.py --type Person --tags "undead,vampire"
 # drafts with "council" in the title, case-sensitive
 python3 find.py --title council --state draft --case
 
-# pipe into extract to bulk-export writing fields
-python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} --writing
+# pipe into extract to bulk-export main article text fields
+python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} --export
 ```
 
 
@@ -139,7 +139,7 @@ Output:
 - writes one `<field>.txt` per extracted field
 - writes `.jsonfile` with original JSON file name
 - writes `.uuid` with article id (if present)
-- with `--writing`, also writes combined plain-text exports to `<world_name>/writing/<entityClass>/<slug>.txt`
+- with `--export`, it also writes combined main article text field exports to `<world_name>/text-export/<entityClass>/<slug>.txt`
 
 Usage:
 
@@ -155,13 +155,15 @@ Parameters:
 - `-a, --all` with `-l`, include all fields (not only strings)
 - `-t, --types` with `-l`, show field types
 - `-e, --empty` create files for empty fields too
-- `-w, --writing` extract writing fields into `<world_name>/writing/<entityClass>/<slug>.txt`
+- `-x, --export` write combined main article text field exports to `<world_name>/text-export/<entityClass>/<slug>.txt`
+- `-b, --bbcode` with `--export`, keep BBcode/WA tags in output instead of stripping and converting them
 
 Examples:
 
-- `python3 extract.py <article-json-file> --writing`
-- `python3 extract.py --writing --all`
-  exports writing files for all published articles in `<world_name>/json/`
+- `python3 extract.py <article-json-file> --export`
+- `python3 extract.py <article-json-file> --export --bbcode`
+- `python3 extract.py --export --all`
+  creates text files of all published articles found in `<world_name>/json/`
 
 
 ## 4) Prepare Deploy Payload for One Article
