@@ -108,6 +108,7 @@ parser.add_argument("--type", dest="entity_type", help="filter by entity class (
 parser.add_argument("--state", help="filter by state (e.g. public, draft, wip)")
 parser.add_argument("--all", action="store_true", help="search all versions of each article (default: latest version only)")
 parser.add_argument("--case", action="store_true", help="case-sensitive search (default: case-insensitive)")
+parser.add_argument("--content", action="store_true", help="print file contents instead of file paths")
 args = parser.parse_args()
 
 if args.title is None and args.slug is None and args.text is None and args.tags is None and args.entity_type is None and args.state is None:
@@ -157,5 +158,14 @@ results.sort(
     reverse=True,
 )
 
-for _data, path, _update_date, _source_mtime in results:
-    print(path.resolve().as_posix())
+for data, path, _update_date, _source_mtime in results:
+    if args.content:
+        print(f"=== {path.resolve().as_posix()} ===")
+        for field in writing_fields:
+            value = data.get(field)
+            if isinstance(value, str) and value != "":
+                print(f"--- {field} ---")
+                print(value)
+        print()
+    else:
+        print(path.resolve().as_posix())
