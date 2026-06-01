@@ -3,97 +3,22 @@ version = "Tillerz Article Find"
 
 from argparse import ArgumentParser
 from datetime import datetime
-from pathlib import Path
 from wa_common import (
     chdir_to_script_dir,
+    load_all_json_articles,
     load_cfg_or_exit,
     load_latest_json_by_slug,
+    matches_slug,
+    matches_state,
+    matches_tags,
+    matches_text,
+    matches_title,
+    matches_type,
     parse_tags,
-    parse_wa_datetime,
-    read_json,
     unique_preserve_order,
     world_paths,
+    writing_fields,
 )
-
-writing_fields = (
-    "title",
-    "subheading",
-    "snippet",
-    "excerpt",
-    "pronunciation",
-    "content",
-    "fullfooter",
-    "sidepanelcontenttop",
-    "sidepanelcontent",
-    "sidebarcontentbottom",
-    "sidebarcontent",
-)
-
-
-def matches_title(jdata, query, case_sensitive):
-    title = jdata.get("title") or ""
-    if not case_sensitive:
-        return query.lower() in title.lower()
-    return query in title
-
-
-def matches_text(jdata, query, case_sensitive):
-    for field in writing_fields:
-        value = jdata.get(field)
-        if not isinstance(value, str) or value == "":
-            continue
-        if not case_sensitive:
-            if query.lower() in value.lower():
-                return True
-        else:
-            if query in value:
-                return True
-    return False
-
-
-def matches_slug(jdata, query, case_sensitive):
-    slug = jdata.get("slug") or ""
-    if not case_sensitive:
-        return query.lower() in slug.lower()
-    return query in slug
-
-
-def matches_tags(jdata, required_tags):
-    article_tags = set(parse_tags(jdata.get("tags")))
-    return set(required_tags).issubset(article_tags)
-
-
-def matches_type(jdata, entity_type, case_sensitive):
-    entity_class = jdata.get("entityClass") or ""
-    if not case_sensitive:
-        return entity_type.lower() == entity_class.lower()
-    return entity_type == entity_class
-
-
-def matches_state(jdata, state, case_sensitive):
-    article_state = jdata.get("state") or ""
-    if not case_sensitive:
-        return state.lower() == article_state.lower()
-    return state == article_state
-
-
-def load_all_articles(json_folder):
-    results = []
-    for path in sorted(Path(json_folder).glob("*.json")):
-        try:
-            data = read_json(path)
-        except Exception as error:
-            print(f"Warning: skipped invalid json {path.as_posix()}: {error}")
-            continue
-        slug = data.get("slug")
-        if not isinstance(slug, str) or slug == "":
-            continue
-        update_obj = data.get("updateDate")
-        update_raw = update_obj.get("date") if isinstance(update_obj, dict) else None
-        update_date = parse_wa_datetime(update_raw)
-        source_mtime = path.stat().st_mtime
-        results.append((data, path, update_date, source_mtime))
-    return results
 
 
 # main
@@ -130,7 +55,7 @@ if args.tags is not None:
         parser.error("--tags: tag list is empty")
 
 if args.all:
-    articles = load_all_articles(json_folder)
+    articles = load_all_json_articles(json_folder)
 else:
     articles = list(load_latest_json_by_slug(json_folder).values())
 

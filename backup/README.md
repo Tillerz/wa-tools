@@ -157,6 +157,17 @@ Parameters:
 - `-e, --empty` create files for empty fields too
 - `-x, --export` write combined main article text field exports to `<world_name>/text-export/<entityClass>/<slug>.txt`
 - `-b, --bbcode` with `--export`, keep BBcode/WA tags in output instead of stripping and converting them
+- `--copy <dest>` copy the latest JSON file of every matching article to `<dest>`
+
+Filters for `--copy` (at least one required):
+
+- `--title <string>` articles with this string in the title
+- `--slug <string>` articles with this string in the slug
+- `--text <string>` articles with this string in any writing field
+- `--tags <tag list>` articles that have all of these comma-separated tags
+- `--type <entityClass>` filter by entity class (e.g. `Person`, `Location`)
+- `--state <state>` filter by state (`public`, `draft`, `wip`)
+- `--case` case-sensitive matching (default: case-insensitive)
 
 Examples:
 
@@ -164,6 +175,10 @@ Examples:
 - `python3 extract.py <article-json-file> --export --bbcode`
 - `python3 extract.py --export --all`
   creates text files of all published articles found in `<world_name>/json/`
+- `python3 extract.py --copy ~/export --type Person --state public`
+  copies all public Person articles to `~/export/`
+- `python3 extract.py --copy ~/export --tags "undead,vampire"`
+  copies all articles tagged with both "undead" and "vampire" to `~/export/`
 
 
 ## 4) Prepare Deploy Payload for One Article

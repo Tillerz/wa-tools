@@ -7,14 +7,25 @@ version = 'Tillerz Article Extract'
 from argparse import ArgumentParser
 from pathlib import Path
 import re
+from shutil import copy2
 from sys import platform
 from wa_common import (
     chdir_to_script_dir,
     ensure_dir,
+    load_all_json_articles,
     load_cfg_or_exit,
     load_latest_json_by_slug,
+    matches_slug,
+    matches_state,
+    matches_tags,
+    matches_text,
+    matches_title,
+    matches_type,
+    parse_tags,
     sanitize_filename_component,
+    unique_preserve_order,
     world_paths,
+    writing_fields,
     read_json,
     write_text,
 )
@@ -24,20 +35,6 @@ types_uuid = { "id", "worldID", "parentID", "categoryID", "authorID", "folderId"
 types_int = { "likes", "views", "wordcount", "viewCount", "likeCount", "commentCount", "positionX", "positionY", "zoomLevel", "mapWidth", "mapHeight", "mapMarkerWidth", "mapMarkerHeight" }
 types_bool = { "isWip", "isDraft", "isAdultContent", "isLocked", "allowComments", "showAuthor", "showLastModified", "showWordCount", "showInSidebar", "showInMap", "isPinned", "isFeatured", "isFeaturedArticle", "isPublished", "showInToc", "isEmphasized", "displayAuthor", "displayChildrenUnder", "displayTitle", "displaySheet", "isEditable", "coverIsMap" }
 default_fields = { "title", "subheading", "snippet", "excerpt", "pronunciation", "content", "fullfooter", "sidepanelcontenttop", "sidepanelcontent", "sidebarcontentbottom", "sidebarcontent", "footnotes", "authornotes", "scrapbook", "credits", "displayCss" }
-writing_fields = (
-    "title",
-    "subheading",
-    "snippet",
-    "excerpt",
-    "pronunciation",
-    "content",
-    "fullfooter",
-    "sidepanelcontenttop",
-    "sidepanelcontent",
-    "sidebarcontentbottom",
-    "sidebarcontent",
-)
-
 SPECIAL_LINK_RE = re.compile(r'@\[([^\]]*)\]\([^)]*\)')
 BBCODE_NEWLINE_RE = re.compile(r'\[(?:br|/p|p)\s*/?\]', re.IGNORECASE)
 BBCODE_HR_RE = re.compile(r'\[hr\s*/?\]', re.IGNORECASE)
@@ -148,6 +145,14 @@ parser.add_argument("-t", "--types", required=False, action='store_true', help="
 parser.add_argument("-e", "--empty", required=False, action='store_true', help="create files for empty fields, too")
 parser.add_argument("-x", "--export", required=False, action='store_true', help="extract main article text fields into text-export/<entityClass>/<slug>.txt")
 parser.add_argument("-b", "--bbcode", required=False, action='store_true', help="with --export, keep BBcode tags in output instead of stripping them")
+parser.add_argument("--copy", metavar="DEST_FOLDER", help="copy matching JSON files to DEST_FOLDER")
+parser.add_argument("--title", help="--copy filter: articles with this string in the title")
+parser.add_argument("--slug", help="--copy filter: articles with this string in the slug")
+parser.add_argument("--text", help="--copy filter: articles with this string in any writing field")
+parser.add_argument("--tags", help="--copy filter: articles that have all of these comma-separated tags")
+parser.add_argument("--type", dest="entity_type", help="--copy filter: entity class (e.g. Person, Location)")
+parser.add_argument("--state", help="--copy filter: article state (e.g. public, draft, wip)")
+parser.add_argument("--case", action="store_true", help="--copy filter: case-sensitive matching (default: case-insensitive)")
 args = parser.parse_args()
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg['world_name']
@@ -155,6 +160,40 @@ world_id = cfg['world_id']
 paths = world_paths(world_name, cfg.get('root_folder'))
 json_folder = paths["json"]
 output_folder = paths["edit"]
+
+if args.copy:
+    if args.title is None and args.slug is None and args.text is None and args.tags is None and args.entity_type is None and args.state is None:
+        parser.error("--copy requires at least one filter: --title, --slug, --text, --tags, --type, or --state")
+    if not json_folder.is_dir():
+        print(f"JSON folder not found: {json_folder.as_posix()}")
+        raise SystemExit(1)
+    required_tags = []
+    if args.tags is not None:
+        required_tags = unique_preserve_order(parse_tags(args.tags))
+        if not required_tags:
+            parser.error("--tags: tag list is empty")
+    dest_folder = Path(args.copy).expanduser()
+    ensure_dir(dest_folder)
+    articles = list(load_latest_json_by_slug(json_folder).values())
+    copied = 0
+    for data, path, _update_date, _source_mtime in articles:
+        if args.title is not None and not matches_title(data, args.title, args.case):
+            continue
+        if args.slug is not None and not matches_slug(data, args.slug, args.case):
+            continue
+        if args.text is not None and not matches_text(data, args.text, args.case):
+            continue
+        if required_tags and not matches_tags(data, required_tags):
+            continue
+        if args.entity_type is not None and not matches_type(data, args.entity_type, args.case):
+            continue
+        if args.state is not None and not matches_state(data, args.state, args.case):
+            continue
+        copy2(path, dest_folder / path.name)
+        print(f"Copied: {path.name}")
+        copied += 1
+    print(f"Copied {copied} file(s) to {dest_folder.as_posix()}")
+    raise SystemExit(0)
 
 # create the export folder if it doesn't exist
 if args.export:
