@@ -158,8 +158,11 @@ Parameters:
 - `-x, --export` write combined main article text field exports to `<world_name>/text-export/<entityClass>/<slug>.txt`
 - `-b, --bbcode` with `--export`, keep BBcode/WA tags in output instead of stripping and converting them
 - `--copy <dest>` copy the latest JSON file of every matching article to `<dest>`
+- `--extract-blocks <output_file>` extract all text blocks between `--start` and `--end` from every article's writing fields into one output file
+- `--start <string>` start delimiter for `--extract-blocks`
+- `--end <string>` end delimiter for `--extract-blocks`
 
-Filters for `--copy` (at least one required):
+Filters for `--copy` and `--extract-blocks` (`--copy` requires at least one):
 
 - `--title <string>` articles with this string in the title
 - `--slug <string>` articles with this string in the slug
@@ -179,6 +182,10 @@ Examples:
   copies all public Person articles to `~/export/`
 - `python3 extract.py --copy ~/export --tags "undead,vampire"`
   copies all articles tagged with both "undead" and "vampire" to `~/export/`
+- `python3 extract.py --extract-blocks plothooks.txt --start "[var:plothook-tillerz]" --end "[var:plothook-end-tillerz]"`
+  extracts all plothook blocks from every article into `plothooks.txt`
+- `python3 extract.py --extract-blocks plothooks.txt --start "[var:plothook-tillerz]" --end "[var:plothook-end-tillerz]" --state public --type Plot`
+  same, but limited to public Plot articles
 
 
 ## 4) Prepare Deploy Payload for One Article
