@@ -114,6 +114,9 @@ def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers)
     The API can answer with fewer entries than the requested limit and still have
     more pages behind it, so a short page is not the end of the list. Only an empty
     page, or a page without a single new id, stops the loop.
+
+    The next offset counts the entries that really came back, not the page size.
+    Stepping by the page size would jump over everything the short page left out.
     """
     items = []
     seen = set()
@@ -144,7 +147,7 @@ def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers)
             added += 1
         if added == 0:
             break
-        offset += PAGESIZE
+        offset += len(page)
     return items
 
 
@@ -158,22 +161,42 @@ def safe_fetch(label, default, action):
         return default
 
 
+def select_maps(all_maps, query):
+    """Find the maps that the user asked for. Maps have no slug, so this takes the
+    uuid or the title."""
+    wanted = query.strip().lower()
+    by_id = [m for m in all_maps if (m.get("id") or "").lower() == wanted]
+    if by_id:
+        return by_id
+    by_title = [m for m in all_maps if (m.get("title") or "").strip().lower() == wanted]
+    if by_title:
+        return by_title
+    return [m for m in all_maps if wanted in (m.get("title") or "").lower()]
+
+
 def sort_by_id(entities):
     return sorted(entities, key=lambda e: e.get("id") or "")
 
 
 parser = argparse.ArgumentParser(description="Backup all maps of a world, with layers, marker groups and markers.")
+parser.add_argument("--map", metavar="MAP",
+                    help="back up one map only, given as its uuid or (part of) its title")
 parser.add_argument("--no-marker-details", action="store_true",
                     help="skip the GET /marker call for every single marker (much faster)")
 parser.add_argument("--force", action="store_true",
                     help="fetch marker details even if the saved version is already up-to-date")
+parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
+                    help="settings file to use (default: settings.cfg)")
 args = parser.parse_args()
 
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = "cookies.json"
-cfg = load_cfg_or_exit("settings.cfg")
+# a second settings file gets its own cookie jar, so a test run cannot overwrite
+# the cookies that belong to the real world
+settings_stem = Path(args.settings).stem
+file_cookies = "cookies.json" if settings_stem == "settings" else f"cookies-{settings_stem}.json"
+cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
 request_headers = build_request_headers(cfg, version)
@@ -195,7 +218,8 @@ with requests.Session() as session:
 
     loop_start = time.monotonic()
     run_stamp = time.strftime("%Y-%m-%d_%H%M%S")
-    limiter = RateLimiter()
+    limiter = RateLimiter(int(cfg.get("rate_limit_calls") or 5),
+                          int(cfg.get("rate_limit_seconds") or 5))
     written = 0
     marker_calls = 0
 
@@ -213,6 +237,19 @@ with requests.Session() as session:
     print(f"Found {len(all_maps)} maps.")
     if save_versioned(maps_folder, "all_maps", all_maps, run_stamp):
         written += 1
+
+    if args.map:
+        selected = select_maps(all_maps, args.map)
+        if not selected:
+            print(f"No map matches '{args.map}'. Use the map uuid or a part of its title.")
+            raise SystemExit(1)
+        if len(selected) > 1:
+            print(f"'{args.map}' matches {len(selected)} maps, please be more precise:")
+            for entry in selected:
+                print(f"  {entry.get('title')}  ({entry.get('id')})")
+            raise SystemExit(1)
+        all_maps = selected
+        print(f"Backing up 1 map: {selected[0].get('title')}")
 
     map_names = {}
     remaining = len(all_maps)
