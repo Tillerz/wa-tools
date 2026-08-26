@@ -7,3 +7,6 @@ alana
 *.json
 *.bak
 settings.cfg
+update.sh
+copy.sh
+.vscode/*-plugin/*

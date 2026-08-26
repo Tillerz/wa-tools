@@ -79,6 +79,7 @@ def world_paths(world_name, root_folder=None):
         "edit": root / "edit",
         "deploy": root / "deploy",
         "text-export": root / "text-export",
+        "maps": root / "maps",
     }
 
 
@@ -160,6 +161,30 @@ def patch_article(session, api_url, article_id, payload, request_headers, timeou
     )
     response.raise_for_status()
     return response
+
+
+def fetch_entity(session, api_url, path, entity_id, request_headers, granularity=2):
+    endpoint = api_url + path + "?id=" + entity_id + "&granularity=" + str(granularity)
+    response = session.get(endpoint, headers=request_headers)
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_entity_list_page(
+    session,
+    api_url,
+    path,
+    entity_id,
+    request_headers,
+    granularity=2,
+    limit=50,
+    offset=0,
+):
+    endpoint = api_url + path + "?id=" + entity_id + "&granularity=" + str(granularity)
+    payload = {"limit": limit, "offset": offset}
+    response = session.post(endpoint, json=payload, headers=request_headers)
+    response.raise_for_status()
+    return response.json()
 
 
 writing_fields = (

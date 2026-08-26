@@ -1,6 +1,7 @@
 # Tillerz' World Anvil Backup/Edit/Deploy/Tag/Find Scripts
 
-Scripts in this folder support a full flow:
+## Articles
+Scripts in this folder support a full article flow:
 
 1. download article JSON backups
 2. find and filter articles
@@ -8,6 +9,10 @@ Scripts in this folder support a full flow:
 4. prepare minimal update payloads from edited text files
 5. manage the article tags
 6. deploy payloads to WA REST API
+
+## Maps
+
+1. download map JSON backups, with layers, marker groups and markers
 
 
 # Requirements
@@ -50,6 +55,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Extracted fields | `~/data/alana/edit/` |
 | Deploy payloads | `~/data/alana/deploy/` |
 | Text exports | `~/data/alana/text-export/` |
+| Map backups | `~/data/alana/maps/` |
 
 
 # Scripts
@@ -71,7 +77,63 @@ Parameters:
 - none
 
 
-## 2) Find Articles
+## 2) Full Map Backup
+
+Script:
+
+- Linux/macOS: `python3 backup-maps.py [options]`
+- Windows: `backup-maps.cmd [options]`
+
+Purpose:
+
+- fetches all maps of the world via WA API, with granularity 2
+- stores maps, layers, marker groups and markers in `<world_name>/maps/`
+
+Usage:
+
+```bash
+usage: backup-maps.py [-h] [--no-marker-details] [--force]
+```
+
+Parameters:
+
+- `--no-marker-details` skip the `GET /marker` call for every single marker; the
+  marker lists are still saved. Use this for a fast run, the marker detail calls
+  are by far the slowest part.
+- `--force` fetch marker details again even when the saved version already
+  matches the marker's last update date
+
+Folder layout per map:
+
+| File | Content |
+|---|---|
+| `maps/all_maps_<date>.json` | list of all maps of the world |
+| `maps/<map-slug>/map_<date>.json` | map details |
+| `maps/<map-slug>/layers_<date>.json` | list of layers of the map |
+| `maps/<map-slug>/markergroups_<date>.json` | list of marker groups of the map |
+| `maps/<map-slug>/markers_<date>.json` | list of markers of the map |
+| `maps/<map-slug>/layers/<layer>_<date>.json` | one file per layer |
+| `maps/<map-slug>/markergroups/<group>_<date>.json` | marker group details |
+| `maps/<map-slug>/markergroups/<group>_markers_<date>.json` | markers of that group |
+| `maps/<map-slug>/markers/<marker>_<date>.json` | marker details |
+
+Notes:
+
+- `<date>` is the entity's last update date if the API returns one, otherwise the
+  start time of the run
+- a new version file is only written when the content really changed, so repeated
+  runs do not fill the folders
+- markers that are in a marker group and in the map marker list are fetched only once
+- there is no API call for single layer details, so the files in `layers/` hold the
+  entries of the layer list
+- all list calls are paged with 50 entries per page; a short page does not end the
+  list, the script keeps asking until a page is empty or brings nothing new
+- one failed API call (for example a 403 on a map you cannot read) only skips that
+  one call; the rest of the map is still saved, and all failures are listed at the end
+- requests are limited to 5 per 5 seconds, same as the article backup
+
+
+## 3) Find Articles
 
 Script:
 
@@ -122,7 +184,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 3) Extract Editable Fields
+## 4) Extract Editable Fields
 
 Script:
 
@@ -188,7 +250,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 4) Prepare Deploy Payload for One Article
+## 5) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -221,7 +283,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 5) Tag Manager
+## 6) Tag Manager
 
 Script:
 
@@ -345,7 +407,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 6) Deploy Payloads
+## 7) Deploy Payloads
 
 Script:
 
