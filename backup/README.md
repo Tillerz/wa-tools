@@ -92,16 +92,39 @@ Purpose:
 Usage:
 
 ```bash
-usage: backup-maps.py [-h] [--no-marker-details] [--force]
+usage: backup-maps.py [-h] [--map MAP] [--no-marker-details] [--force]
+                      [--settings FILE]
 ```
 
 Parameters:
 
+- `--map <uuid or title>` back up one map only. Maps have no slug in the API, so
+  give the map uuid (the last part of the map URL) or its title. A part of the
+  title is enough, as long as it matches only one map; if it matches several, the
+  script lists them and stops.
 - `--no-marker-details` skip the `GET /marker` call for every single marker; the
   marker lists are still saved. Use this for a fast run, the marker detail calls
   are by far the slowest part.
 - `--force` fetch marker details again even when the saved version already
   matches the marker's last update date
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Examples:
+
+```bash
+# every map, everything in it
+python3 backup-maps.py
+
+# every map, but no per-marker detail calls
+python3 backup-maps.py --no-marker-details
+
+# one map, by title
+python3 backup-maps.py --map "Bridgeport County"
+
+# one map, by uuid
+python3 backup-maps.py --map f0f47ee0-fed0-4030-973a-3b80dd1a95b7
+```
 
 Folder layout per map:
 
@@ -130,7 +153,9 @@ Notes:
   list, the script keeps asking until a page is empty or brings nothing new
 - one failed API call (for example a 403 on a map you cannot read) only skips that
   one call; the rest of the map is still saved, and all failures are listed at the end
-- requests are limited to 5 per 5 seconds, same as the article backup
+- requests are limited to 5 per 5 seconds, same as the article backup. Change it
+  with `rate_limit_calls` and `rate_limit_seconds` in `settings.cfg`.
+- a run always refreshes `maps/all_maps_<date>.json`, also with `--map`
 
 
 ## 3) Find Articles
@@ -433,6 +458,18 @@ Parameters:
 
 - `--dry-run` validate and print planned PATCH calls without sending requests
 - `--validate` after successful PATCH, fetch article again and verify uploaded fields
+
+
+# Tests
+
+`tests/` holds a fake World Anvil API, so the scripts can be tested offline
+without an auth token. Each test is named after what it tests:
+
+```bash
+./tests/test-maps.sh
+```
+
+See [tests/README.md](tests/README.md).
 
 
 # Typical Workflow

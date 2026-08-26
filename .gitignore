@@ -10,3 +10,8 @@ settings.cfg
 update.sh
 copy.sh
 .vscode/*-plugin/*
+
+# test fixtures are wanted in git, test output is not
+!backup/tests/fixtures-*.json
+backup/tests/out/
+cookies-*.json

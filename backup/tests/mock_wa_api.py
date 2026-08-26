@@ -131,8 +131,8 @@ def make_handler(data, options):
 parser = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("--port", type=int, default=8099, help="port to listen on (default: 8099)")
-parser.add_argument("--data", default=str(Path(__file__).with_name("fixtures.json")),
-                    help="JSON fixture file (default: fixtures.json next to this script)")
+parser.add_argument("--data", default=str(Path(__file__).with_name("fixtures-maps.json")),
+                    help="JSON fixture file (default: fixtures-maps.json next to this script)")
 parser.add_argument("--short-pages", action="store_true",
                     help="hand back one entry less per page, while more pages still follow")
 parser.add_argument("--forbid", action="append", default=[], metavar="ENDPOINT[:ID]",
