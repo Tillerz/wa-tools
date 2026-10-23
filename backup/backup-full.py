@@ -4,6 +4,7 @@ version = 'Tillerz Full Article Backup'
 # --- requirements ----------------------------------------------------
 # see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
 
+import argparse
 from collections import deque
 import json
 from pathlib import Path
@@ -25,11 +26,19 @@ from wa_common import (
     write_json,
 )
 
+parser = argparse.ArgumentParser(description="Backup all articles of a world.")
+parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
+                    help="settings file to use (default: settings.cfg)")
+args = parser.parse_args()
+
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = "cookies.json"
-cfg = load_cfg_or_exit("settings.cfg")
+# a second settings file gets its own cookie jar, so a test run cannot overwrite
+# the cookies that belong to the real world
+settings_stem = Path(args.settings).stem
+file_cookies = "cookies.json" if settings_stem == "settings" else f"cookies-{settings_stem}.json"
+cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
 request_headers = build_request_headers(cfg, version)

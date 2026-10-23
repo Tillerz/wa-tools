@@ -64,17 +64,24 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 
 Script:
 
-- Linux/macOS: `python3 backup-full.py`
-- Windows: `backup-full.cmd`
+- Linux/macOS: `python3 backup-full.py [options]`
+- Windows: `backup-full.cmd [options]`
 
 Purpose:
 
 - fetches all articles via WA API
 - stores full article JSON in `<world_name>/json/`
 
+Usage:
+
+```bash
+usage: backup-full.py [-h] [--settings FILE]
+```
+
 Parameters:
 
-- none
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
 
 
 ## 2) Full Map Backup
