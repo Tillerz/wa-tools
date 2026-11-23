@@ -1,34 +1,34 @@
 # Tillerz' World Anvil Backup/Edit/Deploy/Tag/Find Scripts
 
-## Articles
-Scripts in this folder support a full article flow:
+## Overview
 
-1. download article JSON backups
+Backup scripts. Each one downloads data of the world via the WA API and saves it as JSON files.
+Run them one by one, there is no script that runs them all.
+
+| Script | Backs up | Saved in | Details |
+|---|---|---|---|
+| `backup-articles.py` | articles | `<world>/json/` | [section 1](#1-article-backup) |
+| `backup-maps.py` | maps, layers, marker groups, markers | `<world>/maps/` | [section 2](#2-full-map-backup) |
+| `backup-manuscripts.py` | manuscripts, versions, parts, beats, stats, plots, labels, tags | `<world>/manuscripts/` | [section 3](#3-full-manuscript-backup) |
+| `backup-notebooks.py` | notebooks, sections, notes | `<world>/notebooks/` | [section 4](#4-full-notebook-backup) |
+| `backup-timelines.py` | timelines, histories (events) | `<world>/timelines/`, `<world>/histories/` | [section 5](#5-full-timeline-backup) |
+| `backup-misc.py` | canvases, secrets, variable collections, variables | `<world>/canvases/`, `<world>/secrets/`, `<world>/variables/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
+
+Not backed up yet: images, block folders and blocks, block templates, categories, subscriber groups, RPG systems.
+Not backed up because WA does not allow it: manuscript bookmarks (WA answers with an error).
+Not backed up on purpose: chronicles (metadata only).
+
+The article scripts support a full article flow:
+
+1. download article JSON backups (`backup-articles.py`)
 2. find and filter articles
 3. extract editable text fields into plain text files
 4. prepare minimal update payloads from edited text files
 5. manage the article tags
 6. deploy payloads to WA REST API
 
-## Maps
-
-1. download map JSON backups, with layers, marker groups and markers
-
-## Manuscripts
-
-1. download manuscript JSON backups, with versions, parts, beats, stats, plots, labels and tags
-
-## Notebooks
-
-1. download notebook JSON backups, with sections and notes
-
-## Timelines
-
-1. download timeline JSON backups, and all histories (events)
-
-## Canvases, Secrets, Variables
-
-1. download canvas, secret, variable collection and variable JSON backups
+All backup scripts have `--settings <file>`, and most have an option to back up only one thing
+(`--map`, `--manuscript`, `--notebook`, `--type`). All of them save a new file only when the data changed.
 
 
 # Requirements
@@ -376,10 +376,22 @@ Script:
 
 Purpose:
 
-- fetches all canvases (whiteboards), secrets, and variable collections with their variables of the world via WA API, with granularity 2
-- stores them in `<world_name>/canvases/`, `<world_name>/secrets/` and `<world_name>/variables/`
-- all of these follow one pattern (list, then one read call per entry), so the script is driven by a small table
-  (`SIMPLE_TYPES` in the script). More types of that pattern need one line there.
+- one script for the smaller data types that follow one pattern: a list call for the world, then one read call for every entry
+- fetches them via WA API, with granularity 2
+
+What is bundled in this script:
+
+| `--type` | What | WA calls | Saved in | Calls per run |
+|---|---|---|---|---|
+| `canvases` | canvases (whiteboards) | `POST /world/canvases`, then `GET /canvas` for each | `<world_name>/canvases/` | 1 + number of canvases |
+| `secrets` | secrets | `POST /world/secrets`, then `GET /secret` for each | `<world_name>/secrets/` | 1 + number of secrets |
+| `variables` | variable collections, and the variables in each collection | `POST /world/variablecollections`, `GET /variablecollection` for each, then `POST /variablecollection/variables` and `GET /variable` for each variable | `<world_name>/variables/` | 1 + collections x 2 + variables |
+
+- `canvases` and `secrets` are driven by a small table (`SIMPLE_TYPES` in the script). `variables` has its own code, because
+  the variables are one level below the collections.
+- another type of the same pattern needs one line in that table and a folder in `world_paths()` in `wa_common.py`.
+- the calls are sent one after the other, so the number of calls is the run time: with the default limit of 5 calls
+  per 5 seconds, about 1 second per call.
 
 Usage:
 
@@ -389,7 +401,8 @@ usage: backup-misc.py [-h] [--type TYPE] [--settings FILE]
 
 Parameters:
 
-- `--type <canvases|secrets|variables>` back up this type only. Can be given several times. Default: all three.
+- `--type <canvases|secrets|variables>` back up this type only. Can be given several times. Default: all three
+  (see the table above).
 - `--settings <file>` use another settings file, for a second world or for the
   test setup. Each settings file gets its own cookie file.
 
@@ -753,6 +766,43 @@ without an auth token. Each test is named after what it tests:
 
 See [tests/README.md](tests/README.md).
 
+
+# Changes
+
+What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
+
+- **New: `backup-misc.py`** for canvases, secrets, variable collections and variables.
+- **New: `backup-timelines.py`** for timelines and histories (events).
+- **New: `backup-notebooks.py`** for notebooks, sections and notes. It uses `POST /user/notebooks`, because
+  `POST /world/notebooks` does not work.
+- **New: `backup-manuscripts.py`** for manuscripts with versions, parts, beats, stats, plots, labels and tags.
+- **Renamed: `backup-full.py` is now `backup-articles.py`** (and `backup-full.cmd` is `backup-articles.cmd`).
+  Change any script or cron job that calls the old name.
+- **Fixed: the article backup lost articles.** It stepped through the article list by the page size, and skipped entries when
+  the API answered with a short page. It now uses the same list reading as the other backups. It also creates the
+  `json/` folder if it is missing, and it follows `rate_limit_calls` and `rate_limit_seconds` from `settings.cfg`.
+- **Fixed: no new version for a change elsewhere in the world** (all backups except the article backup). Every entity carries a
+  copy of its world, and `world.updateDate` in it changes whenever anything in the world is edited. That field is ignored
+  when the script decides if an entity changed. The saved file still has the full data.
+- **Shared code:** `wa_common.py` has the code that the backups share (rate limit, paging, versioned saving, file names,
+  cookies, the `BackupRun` class for list-then-read-each).
+- **Tests:** a fake World Anvil API in `tests/`, and one smoke test per backup. See [Tests](#tests).
+- **New option `--settings <file>`** for all backups, to use another settings file (second world, or the test setup).
+
+# Known problems of the WA API
+
+The backups work around these. They are listed for the WA team in `docs/wa-api-issues.md` (the `docs/` folder is kept local,
+it is not in git).
+
+| Endpoint | Problem | What the backup does |
+|---|---|---|
+| `POST /manuscript/manuscript_bookmarks` | always 422 (broken query on the WA side) | bookmarks are not backed up |
+| `POST /blocktemplate/blocktemplateparts` | always 422 (broken query on the WA side) | not used yet; `GET /blocktemplate` has the parts |
+| `POST /world/notebooks` | 404 (the spec says it does not work) | uses `POST /user/notebooks`, which is not in the spec |
+| `/variable_collection...` | the spec has an underscore, the real paths have none | uses `/variablecollection...` |
+| all list calls | `limit` can be up to 100, not 50 as the spec says | uses 50 |
+| many entities | `updateDate` is `null` (manuscript parts, variables, ...) | reads every entity on every run and saves only real changes |
+| many lists | list entries are short, only the single read has the content | reads every entity with its own call |
 
 # Typical Workflow
 
