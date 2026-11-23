@@ -29,6 +29,28 @@ from wa_common import (
 GRANULARITY = 2
 
 
+def fetch_map_markers(map_base, map_id, map_data):
+    """The markers of a map. POST /map/markers can answer 403 access_denied, also for the owner of
+    the map (3 of 44 maps, checked 2026-11-23). The read of the map has the markers of the map in its
+    field "markers" too, so that is used when the list is denied. The API leaves the field out when a map
+    has no markers (all 12 maps without the field have none). If the map read failed, or the error is
+    another one, it is a warning."""
+    try:
+        return fetch_all_pages(limiter, session, api_url, "map/markers", map_id, request_headers, GRANULARITY)
+    except requests.HTTPError as error:
+        if error.response is not None and error.response.status_code == 403 and map_data is not None:
+            markers = map_data.get("markers") or []
+            print(f"    marker list denied (403), using the {len(markers)} markers of the map details instead")
+            return markers
+        print(f"    WARNING: {map_base}: marker list failed: {error}")
+        warnings.append(f"{map_base}: marker list")
+        return []
+    except requests.RequestException as error:
+        print(f"    WARNING: {map_base}: marker list failed: {error}")
+        warnings.append(f"{map_base}: marker list")
+        return []
+
+
 parser = argparse.ArgumentParser(description="Backup all maps of a world, with layers, marker groups and markers.")
 parser.add_argument("--map", metavar="MAP",
                     help="back up one map only, given as its uuid or (part of) its title")
@@ -152,9 +174,7 @@ with requests.Session() as session:
         print(f"    marker groups: {len(groups)}")
 
         # 7) markers of the map
-        markers = safe_fetch(
-            f"{map_base}: marker list", [],
-            lambda: fetch_all_pages(limiter, session, api_url, "map/markers", map_id, request_headers, GRANULARITY))
+        markers = fetch_map_markers(map_base, map_id, map_data)
         if save_versioned(map_folder, "markers", markers, run_stamp):
             written += 1
         for marker in markers:

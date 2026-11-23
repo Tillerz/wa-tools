@@ -270,18 +270,22 @@ def newest_version(folder, base):
     return files[-1] if files else None
 
 
-def without_volatile(value, parent_key=None):
+def without_volatile(value, nested=False):
     """A copy of <value> without the fields that change when nothing in the entity changed.
 
-    Every entity carries a small copy of its world, and the world's updateDate changes
-    whenever anything in the world is edited. Compared as it is, every saved entity would
-    get a new version after each edit anywhere. This is used to compare only; the file
-    keeps the full data."""
+    Only the entity's own updateDate counts. The updateDate of anything inside it does not:
+    every entity carries small copies of other entities (its world, its map, its parts, ...),
+    and the updateDate of such a copy changes whenever anything in that other entity is edited.
+    Compared as it is, every marker of a map would get a new version after each edit on the map.
+    This is used to compare only; the file keeps the full data.
+
+    A list is a list of entities (a list file), so the entries of a list that is not inside
+    an entity keep their own updateDate."""
     if isinstance(value, dict):
-        return {key: without_volatile(item, key) for key, item in value.items()
-                if not (parent_key == "world" and key == "updateDate")}
+        return {key: without_volatile(item, True) for key, item in value.items()
+                if not (nested and key == "updateDate")}
     if isinstance(value, list):
-        return [without_volatile(item, parent_key) for item in value]
+        return [without_volatile(item, nested) for item in value]
     return value
 
 

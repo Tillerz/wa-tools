@@ -44,10 +44,25 @@ check("title change writes", True, save_versioned(folder, "x", changed, "2026-12
 check("file keeps world updateDate", "2026-11-23 13:09:35",
       __import__("json").loads(sorted(folder.glob("x_*.json"))[-1].read_text())["world"]["updateDate"]["date"])
 # updateDate of other objects stays
-check("other nested updateDate stays", {"a": {"updateDate": 1}},
+check("the updateDate of any nested object does not count", {"a": {}},
       without_volatile({"a": {"updateDate": 1}}))
+check("the entity's own updateDate counts", {"updateDate": 1, "a": {}},
+      without_volatile({"updateDate": 1, "a": {"updateDate": 2}}))
+check("in a list file every entry is an entity: its own updateDate counts, a nested one does not", [{"updateDate": 1, "map": {}}],
+      without_volatile([{"updateDate": 1, "map": {"updateDate": 2}}]))
+check("nested lists: the entries are nested objects", {"parts": [{"id": "p"}]},
+      without_volatile({"parts": [{"id": "p", "updateDate": 3}]}))
 check("lists are walked", [{"world": {"id": "w"}}],
       without_volatile([{"world": {"id": "w", "updateDate": 5}}]))
+
+# the copy of the map inside a marker: the map's updateDate changes when anything on the map is edited
+marker = {"id": "m", "title": "Inn", "geoX": 10, "updateDate": None, "map": {"id": "map1", "title": "Town", "updateDate": {"date": "2026-01-01"}}}
+check("marker: first save writes", True, save_versioned(folder, "marker", marker, "2026-06-01_000000"))
+check("marker: only the map copy's updateDate changed, no write", False,
+      save_versioned(folder, "marker", {**marker, "map": {**marker["map"], "updateDate": {"date": "2026-02-02"}}}, "2026-06-02_000000"))
+check("marker: a real change (x) writes", True, save_versioned(folder, "marker", {**marker, "geoX": 11}, "2026-06-03_000000"))
+check("marker: a real change in the nested group title writes", True,
+      save_versioned(folder, "marker", {**marker, "geoX": 11, "group": {"id": "g", "title": "Streets"}}, "2026-06-04_000000"))
 
 # the content changed, the date did not: the older version must not be overwritten
 same_date = {"id": "s", "title": "one", "updateDate": {"date": "2026-05-01"}}

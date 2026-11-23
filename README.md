@@ -237,6 +237,12 @@ Notes:
   list, the script keeps asking until a page is empty or brings nothing new
 - one failed API call (for example a 403 on a map you cannot read) only skips that
   one call; the rest of the map is still saved, and all failures are listed at the end
+- `POST /map/markers` answers 403 `access_denied` for some maps, **also for the owner** (3 of 44 maps). The read of the map has the markers of
+  the map in its field `markers` as well, so the script uses that when the list is denied. If the field is missing, the map has no markers. Before
+  this, 4 markers of those maps were not backed up, and the empty list was saved as if the map had no markers.
+- **a map backup is slow because the API has no last-changed date for most markers.** Only 239 of 1,423 markers have an `updateDate` in the list, 9 of 44 maps
+  have one, layers and marker groups have none. So the script reads every marker without a date again on every run, and compares the content (about 1,200
+  calls, 20 minutes). It writes a new file only when the content changed. See `api-docs/wa-api-issues.md` (kept local) for the request to WA.
 - requests are limited to 5 per 5 seconds, same as the article backup. Change it
   with `rate_limit_calls` and `rate_limit_seconds` in `settings.cfg`.
 - a run always refreshes `maps/all_maps_<date>.json`, also with `--map`
@@ -524,9 +530,9 @@ Notes:
   a full run takes about 2 minutes.
 - `<date>` is the entity's last update date if the API returns one, otherwise the start
   time of the run. A new version file is only written when the content really changed.
-  Every entity carries a copy of its world, and the world's update date changes whenever anything in the world is
-  edited. That one field is ignored when the script decides if something changed (all backup scripts do this,
-  except the article backup).
+  Every entity carries small copies of other entities (its world, its map, ...), and the update date of such a copy changes whenever
+  anything in that other entity is edited. Only the entity's own update date counts when the script decides if something changed; the
+  update date of anything inside it is ignored (all backup scripts do this, except the article backup).
 - the WA spec writes the variable collection paths with an underscore (`/variable_collection`). The real API has none:
   `/variablecollection` and `/variablecollection/variables`. The script uses the real ones.
 - one failed API call only skips that one call; the rest is still saved, and all
@@ -994,12 +1000,17 @@ What changed in these scripts, most recent first. Useful when you update your ow
   `<world_name>/` folder between the scripts.
 - **New: `backup-world.py`** for the world itself (`GET /world`): settings, descriptions, `displayCss`, `displayPanelCss`,
   `descriptionParsed`, `jsonMetadata`.
+- **Fixed: markers were saved again after every edit on their map.** Every marker carries a copy of its map, and the update date of that copy changes
+  whenever anything on the map is edited. The first fix only ignored the copy of the world. Now the update date of **any** nested copy is ignored,
+  only the entity's own update date counts. In the data of the first runs this had made 5,676 files for 1,442 markers (4,234 of the version
+  pairs differed only in the copy of the world or of the map).
 - **Fixed: a changed entity could overwrite an older backup file.** The file name has the entity's `updateDate`. If the content
   changed but the date did not, the new version got the same name as the old one and replaced it. It is now named by the time of
   the run instead, and the old file stays.
 - **New: `backup-images.py`** for the metadata of the images. It does nothing without `--max N` or `--all`, because a world can have
   thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
+- **Fixed: markers of maps with a denied marker list were not backed up** (see the maps notes).
 - **New: `backup-all.py`** runs all the backup scripts one after the other and prints a summary. See [Run all backups](#run-all-backups).
 - **New: `--parts` and `--template` for the block templates** (`backup-misc.py`). `--parts` reads every part of the templates, `--template` picks one
   template. `BackupRun.backup_children` got the options `pick` and `on_read` for it.
@@ -1036,7 +1047,8 @@ it is not in git).
 | `POST /world/notebooks` | 404 (the spec says it does not work) | uses `POST /user/notebooks`, which is not in the spec |
 | `/variable_collection...` | the spec has an underscore, the real paths have none | uses `/variablecollection...` |
 | all list calls | `limit` can be up to 100, not 50 as the spec says | uses 50 |
-| many entities | `updateDate` is `null` (manuscript parts, variables, ...) | reads every entity on every run and saves only real changes |
+| many entities | `updateDate` is `null` (manuscript parts, variables, marker lists, ...) | reads every entity on every run and saves only real changes. For maps that is about 1,200 calls |
+| `POST /map/markers` | 403 `access_denied` for 3 of 44 maps, also for the owner | uses the `markers` field of the map read |
 | many lists | list entries are short, only the single read has the content | reads every entity with its own call |
 | `POST /rpgsystems` | ignores `limit` and `offset`, always returns all 835 systems (the spec has no paging for it); the systems have no author | not backed up: it is a WA-wide catalog, not your data |
 
