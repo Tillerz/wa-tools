@@ -18,6 +18,10 @@ Scripts in this folder support a full article flow:
 
 1. download manuscript JSON backups, with versions, parts, beats, stats, plots, labels and tags
 
+## Notebooks
+
+1. download notebook JSON backups, with sections and notes
+
 
 # Requirements
 
@@ -61,6 +65,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Text exports | `~/data/alana/text-export/` |
 | Map backups | `~/data/alana/maps/` |
 | Manuscript backups | `~/data/alana/manuscripts/` |
+| Notebook backups | `~/data/alana/notebooks/` |
 
 
 # Scripts
@@ -243,7 +248,64 @@ Notes:
 - requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
 
 
-## 4) Find Articles
+## 4) Full Notebook Backup
+
+Script:
+
+- Linux/macOS: `python3 backup-notebooks.py [options]`
+- Windows: `backup-notebooks.cmd [options]`
+
+Purpose:
+
+- fetches the notebooks of your world via WA API, with granularity 2
+- stores notebooks, sections and notes in `<world_name>/notebooks/`
+
+Usage:
+
+```bash
+usage: backup-notebooks.py [-h] [--notebook NOTEBOOK] [--settings FILE]
+```
+
+Parameters:
+
+- `--notebook <uuid or title>` back up one notebook only. A part of the title is
+  enough, as long as it matches only one notebook. A notebook picked this way is
+  saved even if it belongs to another world.
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Folder layout per notebook:
+
+| File | Content |
+|---|---|
+| `notebooks/all_notebooks_<date>.json` | list of all notebooks of your user, from all worlds |
+| `notebooks/<notebook>/notebook_<date>.json` | notebook details |
+| `notebooks/<notebook>/notesections_<date>.json` | list of sections |
+| `notebooks/<notebook>/notesections/<section>_<date>.json` | one section |
+| `notebooks/<notebook>/notesections/<section>_notes_<date>.json` | list of notes of the section |
+| `notebooks/<notebook>/notesections/<section>_notes/<note>_<date>.json` | one note, with its text |
+
+Notes:
+
+- **notebooks belong to your user, not to a world.** The script reads all your
+  notebooks, then reads each one and keeps only those whose `world` is the world in
+  `settings.cfg`. It prints the others as skipped.
+- the documented call `POST /world/notebooks` does not work (the WA spec says so). The
+  script uses `POST /user/notebooks`, the call WA announced as its replacement. It is
+  not in the spec yet, but it works (checked 2026-11-23). It needs your user id, which
+  the script reads with `GET /identity`.
+- files are named `<title>_<first 8 characters of the id>`, because titles are not
+  unique. Notebooks, sections and many notes have no update date, so `<date>` is the
+  start time of the run for those; notes with an update date use that date. A new
+  version file is only written when the content really changed.
+- the list calls only return short entries, so every section and note is read again
+  with its own call.
+- one failed API call only skips that one call; the rest is still saved, and all
+  failures are listed at the end. A failed list is never saved as an empty list.
+- requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
+
+
+## 5) Find Articles
 
 Script:
 
@@ -294,7 +356,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 5) Extract Editable Fields
+## 6) Extract Editable Fields
 
 Script:
 
@@ -360,7 +422,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 6) Prepare Deploy Payload for One Article
+## 7) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -393,7 +455,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 7) Tag Manager
+## 8) Tag Manager
 
 Script:
 
@@ -517,7 +579,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 8) Deploy Payloads
+## 9) Deploy Payloads
 
 Script:
 
@@ -553,6 +615,7 @@ without an auth token. Each test is named after what it tests:
 ```bash
 ./tests/test-articles.sh
 ./tests/test-manuscripts.sh
+./tests/test-notebooks.sh
 ./tests/test-maps.sh
 ```
 

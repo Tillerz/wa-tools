@@ -1,0 +1,98 @@
+{
+  "notebooks": [
+    {
+      "id": "nnnnnnnn-0000-0000-0000-000000000001",
+      "title": "Notes",
+      "slug": null,
+      "state": null,
+      "entityClass": "Notebook",
+      "updateDate": null,
+      "world": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "title": "Test World"
+      }
+    },
+    {
+      "id": "nnnnnnnn-0000-0000-0000-000000000002",
+      "title": "Notes",
+      "slug": null,
+      "state": null,
+      "entityClass": "Notebook",
+      "updateDate": null,
+      "world": {
+        "id": "99999999-0000-0000-0000-000000000009",
+        "title": "Other World"
+      }
+    },
+    {
+      "id": "nnnnnnnn-0000-0000-0000-000000000003",
+      "title": "Loose Thoughts",
+      "slug": null,
+      "state": null,
+      "entityClass": "Notebook",
+      "updateDate": null,
+      "world": null
+    }
+  ],
+  "notebook_sections": {
+    "nnnnnnnn-0000-0000-0000-000000000001": [
+      {
+        "id": "sssssss1-0000-0000-0000-000000000001",
+        "title": "Lists",
+        "slug": null,
+        "state": null,
+        "entityClass": "Notesection",
+        "updateDate": null
+      },
+      {
+        "id": "sssssss2-0000-0000-0000-000000000002",
+        "title": "Locked",
+        "slug": null,
+        "state": null,
+        "entityClass": "Notesection",
+        "updateDate": null
+      }
+    ],
+    "nnnnnnnn-0000-0000-0000-000000000002": [],
+    "nnnnnnnn-0000-0000-0000-000000000003": []
+  },
+  "section_notes": {
+    "sssssss1-0000-0000-0000-000000000001": [
+      {
+        "id": "nnnnote1-0000-0000-0000-000000000001",
+        "title": "Guild Names",
+        "slug": null,
+        "state": null,
+        "entityClass": "Note",
+        "updateDate": {
+          "date": "2026-05-14 18:00:34.000000"
+        },
+        "content": "Ironfist"
+      },
+      {
+        "id": "nnnnote1-0000-0000-0000-000000000002",
+        "title": "Guild Names",
+        "slug": null,
+        "state": null,
+        "entityClass": "Note",
+        "updateDate": {
+          "date": "2026-05-14 18:00:34.000000"
+        },
+        "content": "Silvertongue"
+      }
+    ],
+    "sssssss2-0000-0000-0000-000000000002": [
+      {
+        "id": "nnnnote2-0000-0000-0000-000000000001",
+        "title": "Secret",
+        "slug": null,
+        "state": null,
+        "entityClass": "Note",
+        "updateDate": {
+          "date": "2026-05-14 18:00:34.000000"
+        },
+        "content": "hidden"
+      }
+    ]
+  }
+}

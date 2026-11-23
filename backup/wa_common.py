@@ -91,6 +91,7 @@ def world_paths(world_name, root_folder=None):
         "text-export": root / "text-export",
         "maps": root / "maps",
         "manuscripts": root / "manuscripts",
+        "notebooks": root / "notebooks",
     }
 
 

@@ -15,6 +15,8 @@ the rate limit.
 | `fixtures-articles.json` | the articles the article test uses: 3 articles |
 | `fixtures-manuscripts.json` | the manuscripts the manuscript test uses: 2 manuscripts, versions, parts, beats, stats, labels |
 | `test-manuscripts.sh` | smoke test for `backup-manuscripts.py`, including two parts with the same title and a 403 |
+| `fixtures-notebooks.json` | the notebooks the notebook test uses: 3 notebooks (one per case: this world, another world, no world), sections, notes |
+| `test-notebooks.sh` | smoke test for `backup-notebooks.py`, including the world filter, two notes with the same title and a 403 |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -26,6 +28,7 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-maps.sh
 ./tests/test-articles.sh
 ./tests/test-manuscripts.sh
+./tests/test-notebooks.sh
 ```
 
 It prints `ALL TESTS PASSED` or lists what went wrong. Everything it downloads
