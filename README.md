@@ -2,6 +2,16 @@
 
 [![tests](https://github.com/Tillerz/wa-tools/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Tillerz/wa-tools/actions/workflows/tests.yml)
 
+> [!IMPORTANT]
+> **You need access to the World Anvil API first.** Every call to the World Anvil API needs two keys, and one of them is not available to everyone:
+>
+> 1. **Application key** (`x_application_key`): World Anvil only supplies it to people who build their own applications. **You have to request
+>    it from World Anvil and get it granted before these tools can work.**
+> 2. **User authentication token** (`x_auth_token`): you create it yourself on your [User API Tokens page](https://www.worldanvil.com/api/auth/key).
+>
+> Without both, the API answers `401 Unauthorized`. Put both into `settings.cfg` (see [Configuration](#configuration)) and never publish them: git
+> ignores `settings.cfg` on purpose. More in the [World Anvil API documentation](https://www.worldanvil.com/api/external/boromir/documentation).
+
 ## Overview
 
 Backup scripts. Each one downloads data of the world via the WA API and saves it as JSON files.
