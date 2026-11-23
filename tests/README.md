@@ -28,6 +28,8 @@ the rate limit.
 | `fixtures-world.json` | the world the world test uses, with CSS that has Windows line endings |
 | `test-world.sh` | smoke test for `backup-world.py`: the files in `latest/`, line endings, nothing rewritten, a changed file is restored |
 | `test-prepare.sh` | test of `prepare.py` (no fake server): it must use `root_folder` and write nothing next to the script |
+| `test-tagmgr.sh` | test of `tagmgr.py` (no fake server): all commands, the payloads in the work folder, chained changes |
+| `test-names.sh` | looks for names that a script uses but never defines or imports (like a missing import), in all scripts |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -45,6 +47,8 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-images.sh
 ./tests/test-world.sh
 ./tests/test-prepare.sh
+./tests/test-tagmgr.sh
+./tests/test-names.sh
 ./tests/test-common.sh
 ```
 

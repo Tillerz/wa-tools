@@ -916,6 +916,8 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-images.sh
 ./tests/test-world.sh
 ./tests/test-prepare.sh
+./tests/test-tagmgr.sh
+./tests/test-names.sh
 ./tests/test-common.sh
 ./tests/test-maps.sh
 ```
@@ -927,6 +929,9 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **Fixed: `tagmgr.py` crashed on every start** (`NameError: datetime`): it used `datetime` without importing it. `tests/test-tagmgr.sh` runs all its
+  commands (stats, tags, articles, add, replace, remove, dry-run, chained changes). `tests/test-names.sh` looks for names that a script uses but
+  never defines or imports, in all scripts.
 - **Removed: the cookie files** (`cookies.json` and `cookies-<settings name>.json`). WA and Cloudflare never set a cookie for API calls (checked
   directly and through the proxy: no `Set-Cookie` header), so the files always held `{}`. The scripts no longer load or save cookies. You can
   delete old `cookies*.json` files.
