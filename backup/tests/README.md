@@ -22,6 +22,8 @@ the rate limit.
 | `fixtures-misc.json` | the data the misc test uses: 1 canvas, 3 secrets, 3 variable collections with variables, 3 block folders with blocks, 4 block templates (integer ids), 3 categories, 2 subscriber groups |
 | `test-misc.sh` | smoke test for `backup-misc.py`, including same-title secrets, an empty collection, a 403 and `--type` |
 | `test-common.sh` | tests of shared code in `wa_common.py` that need no fake server (for example: the version comparison) |
+| `fixtures-images.json` | the images the image test uses: 3 images (integer ids) |
+| `test-images.sh` | smoke test for `backup-images.py`, with 60 more generated images: no amount given, `--max`, `--all`, paging |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -36,6 +38,7 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-notebooks.sh
 ./tests/test-timelines.sh
 ./tests/test-misc.sh
+./tests/test-images.sh
 ./tests/test-common.sh
 ```
 
@@ -73,6 +76,7 @@ Both can be turned on:
 | `--bulk-markers 130` | adds 130 generated markers to the first map, so paging really runs |
 | `--bulk-articles 60` | adds 60 generated articles, so paging really runs |
 | `--bulk-histories 60` | adds 60 generated histories, so paging really runs |
+| `--bulk-images 60` | adds 60 generated images, so paging really runs |
 
 Example, the exact case that lost markers before:
 

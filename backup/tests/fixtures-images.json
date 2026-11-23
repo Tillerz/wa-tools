@@ -1,0 +1,47 @@
+{
+  "images": [
+    {
+      "id": 4674529,
+      "title": "Harbour at dusk",
+      "slug": null,
+      "state": null,
+      "entityClass": "Image",
+      "updateDate": {
+        "date": "2026-02-01 10:00:00.000000"
+      },
+      "filename": "65969c8f.webp",
+      "size": 175176,
+      "width": 1456,
+      "height": 816,
+      "url": "https://example.invalid/uploads/images/65969c8f.webp"
+    },
+    {
+      "id": 4674530,
+      "title": "Harbour at dusk",
+      "slug": null,
+      "state": null,
+      "entityClass": "Image",
+      "updateDate": {
+        "date": "2026-02-01 10:00:00.000000"
+      },
+      "filename": "a1b2c3d4.webp",
+      "size": 1000,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": 4674531,
+      "title": "",
+      "slug": null,
+      "state": null,
+      "entityClass": "Image",
+      "updateDate": {
+        "date": "2026-02-01 10:00:00.000000"
+      },
+      "filename": "e5f6.png",
+      "size": 2000,
+      "width": 200,
+      "height": 200
+    }
+  ]
+}

@@ -12,6 +12,7 @@ testable:
   --bulk-markers  add N generated markers to the first map, to force paging
   --bulk-articles add N generated articles, to force paging
   --bulk-histories add N generated histories, to force paging
+  --bulk-images   add N generated images, to force paging
 
 See README.md in this folder.
 """
@@ -48,6 +49,7 @@ WORLD_LISTS = {
     "user/blocktemplates": "blocktemplates",
     "world/categories": "categories",
     "world/subscribergroups": "subscribergroups",
+    "world/images": "images",
 }
 WORLD_READS = {
     "canvas": "canvases",
@@ -57,6 +59,7 @@ WORLD_READS = {
     "blocktemplate": "blocktemplates",
     "category": "categories",
     "subscribergroup": "subscribergroups",
+    "image": "images",
 }
 LIST_KEYS = ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories",
              *WORLD_LISTS.values())
@@ -107,6 +110,12 @@ def add_bulk_histories(data, count):
                   "year": 1000 + n, "updateDate": {"date": "2026-01-01 12:00:00.000000"}}
                  for n in range(count)]
     data["histories"].extend(generated)
+
+
+def add_bulk_images(data, count):
+    generated = [{"id": 5000 + n, "title": f"Bulk image {n:04d}", "slug": None, "entityClass": "Image",
+                  "updateDate": {"date": "2026-01-01 12:00:00.000000"}} for n in range(count)]
+    data["images"].extend(generated)
 
 
 def find_entity(groups_of_lists, entity_id):
@@ -242,6 +251,8 @@ parser.add_argument("--bulk-articles", type=int, default=0, metavar="N",
                     help="add N generated articles, to force paging")
 parser.add_argument("--bulk-histories", type=int, default=0, metavar="N",
                     help="add N generated histories, to force paging")
+parser.add_argument("--bulk-images", type=int, default=0, metavar="N",
+                    help="add N generated images, to force paging")
 parser.add_argument("--quiet", action="store_true", help="do not log requests")
 options = parser.parse_args()
 
@@ -249,6 +260,7 @@ fixture = load_fixture(options.data)
 add_bulk_markers(fixture, options.bulk_markers)
 add_bulk_articles(fixture, options.bulk_articles)
 add_bulk_histories(fixture, options.bulk_histories)
+add_bulk_images(fixture, options.bulk_images)
 server = HTTPServer(("127.0.0.1", options.port), make_handler(fixture, options))
 print(f"Mock WA API on http://127.0.0.1:{options.port} using {options.data}")
 print(f"  maps: {len(fixture['maps'])}, articles: {len(fixture['articles'])}, "

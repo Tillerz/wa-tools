@@ -99,6 +99,7 @@ def world_paths(world_name, root_folder=None):
         "blocks": root / "blocks",
         "blocktemplates": root / "blocktemplates",
         "categories": root / "categories",
+        "images": root / "images",
         "subscribergroups": root / "subscribergroups",
         "histories": root / "histories",
     }
@@ -309,7 +310,8 @@ def entities_of(jdata):
     return []
 
 
-def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers, granularity=2):
+def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers, granularity=2,
+                    max_items=None):
     """Read a list endpoint page by page.
 
     The API can answer with fewer entries than the requested limit and still have
@@ -318,6 +320,9 @@ def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers,
 
     The next offset counts the entries that really came back, not the page size.
     Stepping by the page size would jump over everything the short page left out.
+
+    With max_items, the loop stops as soon as that many entries are read, and asks for no
+    more than it needs. Use it to try a list on a world with a lot of entries.
     """
     items = []
     seen = set()
@@ -331,7 +336,7 @@ def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers,
             entity_id,
             request_headers,
             granularity=granularity,
-            limit=PAGESIZE,
+            limit=PAGESIZE if not max_items else min(PAGESIZE, max_items - len(items)),
             offset=offset,
         )
         page = entities_of(jdata)
@@ -346,10 +351,10 @@ def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers,
                 seen.add(entry_id)
             items.append(entry)
             added += 1
-        if added == 0:
+        if added == 0 or (max_items and len(items) >= max_items):
             break
         offset += len(page)
-    return items
+    return items[:max_items] if max_items else items
 
 
 def safe_fetch(label, default, action):
@@ -430,16 +435,16 @@ class BackupRun:
             self.detail_calls += 1
         return data
 
-    def listing(self, label, path, parent_id):
+    def listing(self, label, path, parent_id, max_items=None):
         """POST one list endpoint, all pages. On an API error: warn, return None.
         None is not the same as an empty list: a failed call must not be saved as
         "this entity has no children"."""
         return safe_fetch(label, None, lambda: fetch_all_pages(
             self.limiter, self.session, self.api_url, path, parent_id,
-            self.request_headers, self.granularity))
+            self.request_headers, self.granularity, max_items))
 
     def backup_children(self, label, list_path, read_path, parent_id, folder, list_name,
-                        skip_if_empty=False, children_folder=None):
+                        skip_if_empty=False, children_folder=None, max_items=None):
         """Save the list of the children of one entity, and every child itself.
 
         The list entries are thin: a part or a note in a list has little or no content,
@@ -447,10 +452,11 @@ class BackupRun:
         <folder>/<list_name>_<date>.json, the children to
         <folder>/<list_name>/<name>_<date>.json, or to <children_folder>/<name>_<date>.json
         if that is given.
+        With max_items, only that many entries are read from the list (and then each of them).
         With skip_if_empty, an empty list that was never saved before is not written
         and not printed (used for the beats: most parts have none).
         Returns [(list entry, file base name)], for the caller to go on with."""
-        entries = self.listing(f"{label}: {list_name} list", list_path, parent_id)
+        entries = self.listing(f"{label}: {list_name} list", list_path, parent_id, max_items)
         if entries is None:
             return []
         if entries or not skip_if_empty or newest_version(folder, list_name):

@@ -12,9 +12,13 @@ Run them one by one, there is no script that runs them all.
 | `backup-manuscripts.py` | manuscripts, versions, parts, beats, stats, plots, labels, tags | `<world>/manuscripts/` | [section 3](#3-full-manuscript-backup) |
 | `backup-notebooks.py` | notebooks, sections, notes | `<world>/notebooks/` | [section 4](#4-full-notebook-backup) |
 | `backup-timelines.py` | timelines, histories (events) | `<world>/timelines/`, `<world>/histories/` | [section 5](#5-full-timeline-backup) |
+| `backup-images.py` | image metadata (not the image files). Needs `--max N` or `--all` | `<world>/images/` | [section 7](#7-image-metadata-backup) |
 | `backup-misc.py` | canvases, secrets, categories, subscriber groups, variable collections, variables, block folders, blocks, block templates | `<world>/canvases/`, `secrets/`, `categories/`, `subscribergroups/`, `variables/`, `blocks/`, `blocktemplates/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
 
-Not backed up yet: images, RPG systems.
+Not backed up on purpose: RPG systems and marker types. They are WA-wide catalogs, not your data. `POST /rpgsystems` returns 835 systems: in a scan
+of all of them, none has an author and none is editable by you. `POST /markertypes` returns 616 marker types (a sample of 30 had no
+owner either). The RPG system list ignores `limit` and `offset` (the spec has no paging for it).
+Not backed up: the image files themselves (the API cannot give them, `backup-images.py` saves the metadata and the `url`).
 Not backed up because WA does not allow it: manuscript bookmarks (WA answers with an error).
 Not backed up on purpose: chronicles (metadata only).
 
@@ -83,6 +87,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Block template backups | `~/data/alana/blocktemplates/` |
 | Category backups | `~/data/alana/categories/` |
 | Subscriber group backups | `~/data/alana/subscribergroups/` |
+| Image metadata backups | `~/data/alana/images/` |
 
 
 # Scripts
@@ -478,7 +483,64 @@ Notes:
 - requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
 
 
-## 7) Find Articles
+## 7) Image Metadata Backup
+
+Script:
+
+- Linux/macOS: `python3 backup-images.py (--max N | --all) [options]`
+- Windows: `backup-images.cmd (--max N | --all) [options]`
+
+Purpose:
+
+- fetches the **metadata** of the images of the world via WA API, with granularity 2: title, size, width, height, file name,
+  extension, `url`, the articles that use the image, galleries, credits
+- **it does not save the image files.** The API cannot upload or download them (the spec says so). Every JSON file has the
+  `url` of the file on the WA server.
+- stores them in `<world_name>/images/`
+- it is a separate script, and it **does nothing without `--max` or `--all`.** A world can have thousands of images, and every
+  image is one read call (the list entries are thin). At 5 calls per 5 seconds, 1,000 images take about 17 minutes.
+
+Usage:
+
+```bash
+usage: backup-images.py [-h] (--max N | --all) [--settings FILE]
+```
+
+Parameters:
+
+- `--max <N>` back up the first N images only. Use this to try it: `--max 50` makes 1 list call and 50 read calls.
+- `--all` back up all images: 1 list call per 50 images, and 1 read call per image.
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Examples:
+
+```bash
+# try it with the first 50 images
+python3 backup-images.py --max 50
+
+# everything (only when you know how many images you have)
+python3 backup-images.py --all
+```
+
+Folder layout:
+
+| File | Content |
+|---|---|
+| `images/images_first_<N>_<date>.json` | list of the first N images, from a `--max N` run |
+| `images/all_images_<date>.json` | list of all images, from an `--all` run |
+| `images/<image>_<date>.json` | one image: its metadata |
+
+Notes:
+
+- an image is named `<title>_<id>` (the id is an integer). Images without a title are named by their id.
+- `--max` and `--all` write into the same folder. An `--all` run after a `--max` run only adds what is new or changed.
+- `<date>` is the image's last update date. A new version file is only written when the content really changed.
+- one failed API call only skips that one call; the rest is still saved, and all failures are listed at the end.
+- requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
+
+
+## 8) Find Articles
 
 Script:
 
@@ -529,7 +591,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 8) Extract Editable Fields
+## 9) Extract Editable Fields
 
 Script:
 
@@ -595,7 +657,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 9) Prepare Deploy Payload for One Article
+## 10) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -628,7 +690,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 10) Tag Manager
+## 11) Tag Manager
 
 Script:
 
@@ -752,7 +814,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 11) Deploy Payloads
+## 12) Deploy Payloads
 
 Script:
 
@@ -791,6 +853,7 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-notebooks.sh
 ./tests/test-timelines.sh
 ./tests/test-misc.sh
+./tests/test-images.sh
 ./tests/test-common.sh
 ./tests/test-maps.sh
 ```
@@ -802,6 +865,8 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **New: `backup-images.py`** for the metadata of the images. It does nothing without `--max N` or `--all`, because a world can have
+  thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
 - **New: block templates** in `backup-misc.py` (`--type blocktemplates`). `BackupRun.user_id()` reads the user id for the lists that
   belong to the user (the notebook backup uses it too).
@@ -838,6 +903,7 @@ it is not in git).
 | all list calls | `limit` can be up to 100, not 50 as the spec says | uses 50 |
 | many entities | `updateDate` is `null` (manuscript parts, variables, ...) | reads every entity on every run and saves only real changes |
 | many lists | list entries are short, only the single read has the content | reads every entity with its own call |
+| `POST /rpgsystems` | ignores `limit` and `offset`, always returns all 835 systems (the spec has no paging for it); the systems have no author | not backed up: it is a WA-wide catalog, not your data |
 
 # Typical Workflow
 
