@@ -12,6 +12,7 @@ Run them one by one, there is no script that runs them all.
 | `backup-manuscripts.py` | manuscripts, versions, parts, beats, stats, plots, labels, tags | `<world>/manuscripts/` | [section 3](#3-full-manuscript-backup) |
 | `backup-notebooks.py` | notebooks, sections, notes | `<world>/notebooks/` | [section 4](#4-full-notebook-backup) |
 | `backup-timelines.py` | timelines, histories (events) | `<world>/timelines/`, `<world>/histories/` | [section 5](#5-full-timeline-backup) |
+| `backup-world.py` | the world itself: settings, descriptions, CSS, `jsonMetadata` | `<world>/world/` | [section 8](#8-world-backup) |
 | `backup-images.py` | image metadata (not the image files). Needs `--max N` or `--all` | `<world>/images/` | [section 7](#7-image-metadata-backup) |
 | `backup-misc.py` | canvases, secrets, categories, subscriber groups, variable collections, variables, block folders, blocks, block templates | `<world>/canvases/`, `secrets/`, `categories/`, `subscribergroups/`, `variables/`, `blocks/`, `blocktemplates/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
 
@@ -88,6 +89,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Category backups | `~/data/alana/categories/` |
 | Subscriber group backups | `~/data/alana/subscribergroups/` |
 | Image metadata backups | `~/data/alana/images/` |
+| World backup | `~/data/alana/world/` |
 
 
 # Scripts
@@ -540,7 +542,56 @@ Notes:
 - requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
 
 
-## 8) Find Articles
+## 8) World Backup
+
+Script:
+
+- Linux/macOS: `python3 backup-world.py [options]`
+- Windows: `backup-world.cmd [options]`
+
+Purpose:
+
+- fetches the world itself via `GET /world` (granularity 2) and saves it as JSON: its settings, the descriptions, the
+  homepage texts, the display settings, `displayCss`, `displayPanelCss`, `descriptionParsed`, `jsonMetadata`, `metaTitle`,
+  `metaDescription` and the rest (138 fields)
+- the long texts are also saved as files of their own, so you can read and diff them
+- it is one call, and it takes a second
+
+Usage:
+
+```bash
+usage: backup-world.py [-h] [--settings FILE]
+```
+
+Parameters:
+
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Folder layout:
+
+| File | Content |
+|---|---|
+| `world/world_<date>.json` | the whole world, all fields, versioned |
+| `world/latest/descriptionParsed.html` | the field `descriptionParsed` |
+| `world/latest/displayCss.css` | the field `displayCss` (the custom CSS of the world, about 100 KB) |
+| `world/latest/displayPanelCss.css` | the field `displayPanelCss` |
+| `world/latest/jsonMetadata.json` | the field `jsonMetadata`: a JSON text inside the JSON, here pretty-printed |
+
+Notes:
+
+- the files in `latest/` are always the current state, they are rewritten when the text changed. The history is in the
+  versioned `world_<date>.json` files, which hold the same texts. A field that is empty gets no file.
+- a new `world_<date>.json` is only written when something changed. These do not count as a change: the world's `updateDate`
+  (it changes whenever anything in the world is edited) and the statistics (`countFollowers`, `countComments`,
+  `countArticles`, `countArticleLikes`, `countMaps`, `countTimelines`). The file keeps them, it just does not get a new
+  version because of them alone.
+- the files are compared as bytes. The CSS of a world can have Windows line endings (`\r\n`), and they are kept as they are.
+- the API has no separate "meta" files of the world. What the world has of that kind is in the one JSON: `jsonMetadata`
+  (internal settings of the world, as JSON text), `metaTitle` and `metaDescription` (the texts for search engines).
+
+
+## 9) Find Articles
 
 Script:
 
@@ -591,7 +642,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 9) Extract Editable Fields
+## 10) Extract Editable Fields
 
 Script:
 
@@ -657,7 +708,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 10) Prepare Deploy Payload for One Article
+## 11) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -690,7 +741,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 11) Tag Manager
+## 12) Tag Manager
 
 Script:
 
@@ -814,7 +865,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 12) Deploy Payloads
+## 13) Deploy Payloads
 
 Script:
 
@@ -854,6 +905,7 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-timelines.sh
 ./tests/test-misc.sh
 ./tests/test-images.sh
+./tests/test-world.sh
 ./tests/test-common.sh
 ./tests/test-maps.sh
 ```
@@ -865,6 +917,11 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **New: `backup-world.py`** for the world itself (`GET /world`): settings, descriptions, `displayCss`, `displayPanelCss`,
+  `descriptionParsed`, `jsonMetadata`.
+- **Fixed: a changed entity could overwrite an older backup file.** The file name has the entity's `updateDate`. If the content
+  changed but the date did not, the new version got the same name as the old one and replaced it. It is now named by the time of
+  the run instead, and the old file stays.
 - **New: `backup-images.py`** for the metadata of the images. It does nothing without `--max N` or `--all`, because a world can have
   thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).

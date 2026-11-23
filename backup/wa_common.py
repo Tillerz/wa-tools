@@ -100,6 +100,7 @@ def world_paths(world_name, root_folder=None):
         "blocktemplates": root / "blocktemplates",
         "categories": root / "categories",
         "images": root / "images",
+        "world": root / "world",
         "subscribergroups": root / "subscribergroups",
         "histories": root / "histories",
     }
@@ -283,18 +284,29 @@ def without_volatile(value, parent_key=None):
     return value
 
 
-def save_versioned(folder, base, data, timestamp):
+def save_versioned(folder, base, data, timestamp, ignore=()):
     """Write <base>_<timestamp>.json, unless the newest saved version is identical.
-    The change of a volatile field alone (see without_volatile) does not count."""
+    The change of a volatile field alone (see without_volatile) does not count.
+    <ignore> names more top-level fields that do not count, for example statistics. The
+    file keeps them."""
     ensure_dir(folder)
     previous = newest_version(folder, base)
     if previous is not None:
+        def comparable(value):
+            if isinstance(value, dict):
+                value = {key: item for key, item in value.items() if key not in ignore}
+            return without_volatile(value)
         try:
-            if without_volatile(read_json(previous)) == without_volatile(data):
+            if comparable(read_json(previous)) == comparable(data):
                 return False
         except (OSError, ValueError):
             pass
-    write_json(Path(folder) / f"{base}_{timestamp}.json", data)
+    target = Path(folder) / f"{base}_{timestamp}.json"
+    if target.exists():
+        # the content changed, but the date did not (the entity was changed without a new
+        # updateDate): do not overwrite the older version, name this one by the time of the run
+        target = Path(folder) / f"{base}_{time.strftime('%Y-%m-%d_%H%M%S')}.json"
+    write_json(target, data)
     return True
 
 

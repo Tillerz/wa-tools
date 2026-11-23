@@ -84,6 +84,7 @@ def load_fixture(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     for key in (*LIST_KEYS, "layers", "markergroups", "groupmarkers", "markers", *CHILD_LISTS.values()):
         data.setdefault(key, [] if key in LIST_KEYS else {})
+    data.setdefault("world", {})
     return data
 
 
@@ -165,6 +166,8 @@ def make_handler(data, options):
                 return self.reply({"success": False, "error": "forbidden"}, 403)
             if path == "article":
                 entity = find_entity([data["articles"]], entity_id)
+            elif path == "world":
+                entity = find_entity([[data["world"]]], entity_id)
             elif path == "identity":
                 return self.reply({"id": USER_ID, "username": "tester", "success": True})
             elif path == "manuscript":

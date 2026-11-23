@@ -24,6 +24,8 @@ the rate limit.
 | `test-common.sh` | tests of shared code in `wa_common.py` that need no fake server (for example: the version comparison) |
 | `fixtures-images.json` | the images the image test uses: 3 images (integer ids) |
 | `test-images.sh` | smoke test for `backup-images.py`, with 60 more generated images: no amount given, `--max`, `--all`, paging |
+| `fixtures-world.json` | the world the world test uses, with CSS that has Windows line endings |
+| `test-world.sh` | smoke test for `backup-world.py`: the files in `latest/`, line endings, nothing rewritten, a changed file is restored |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -39,6 +41,7 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-timelines.sh
 ./tests/test-misc.sh
 ./tests/test-images.sh
+./tests/test-world.sh
 ./tests/test-common.sh
 ```
 

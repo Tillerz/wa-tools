@@ -49,6 +49,24 @@ check("other nested updateDate stays", {"a": {"updateDate": 1}},
 check("lists are walked", [{"world": {"id": "w"}}],
       without_volatile([{"world": {"id": "w", "updateDate": 5}}]))
 
+# the content changed, the date did not: the older version must not be overwritten
+same_date = {"id": "s", "title": "one", "updateDate": {"date": "2026-05-01"}}
+save_versioned(folder, "s", same_date, "2026-05-01_000000")
+check("same date, new content writes", True, save_versioned(folder, "s", {**same_date, "title": "two"}, "2026-05-01_000000"))
+check("same date: two files, the old one is kept", 2, len(list(folder.glob("s_*.json"))))
+check("same date: the old file still has the old content", "one",
+      __import__("json").loads((folder / "s_2026-05-01_000000.json").read_text())["title"])
+
+# <ignore>: top-level fields that do not count as a change, but stay in the file
+world = {"id": "w", "title": "x", "updateDate": "d1", "countFollowers": 1}
+check("ignore: first save writes", True, save_versioned(folder, "w", world, "2026-01-01_000000", ignore=["updateDate", "countFollowers"]))
+check("ignore: only ignored fields changed, no write", False,
+      save_versioned(folder, "w", {**world, "updateDate": "d2", "countFollowers": 99}, "2026-01-02_000000", ignore=["updateDate", "countFollowers"]))
+check("ignore: a real change writes", True,
+      save_versioned(folder, "w", {**world, "updateDate": "d3", "title": "y"}, "2026-01-03_000000", ignore=["updateDate", "countFollowers"]))
+check("ignore: without the option the same change writes", True,
+      save_versioned(folder, "w", {**world, "updateDate": "d4", "title": "y"}, "2026-01-04_000000"))
+
 # block and block folder ids are integers, not uuids
 from wa_common import entity_basename, select_entities, sort_by_id, stable_basename
 check("integer id: stable name", "Wildshape_1285074", stable_basename({"id": 1285074, "title": "Wildshape"}, {}))

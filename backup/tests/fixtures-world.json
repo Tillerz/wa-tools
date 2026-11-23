@@ -1,0 +1,19 @@
+{
+  "world": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "title": "Test World",
+    "slug": "testworld",
+    "entityClass": "World",
+    "updateDate": {
+      "date": "2026-11-23 13:21:04.000000"
+    },
+    "countFollowers": 10,
+    "countComments": 5,
+    "countArticles": 3,
+    "descriptionParsed": "<p>A <b>test</b> world.</p>",
+    "displayCss": "body { color: #123456; }\n.panel { margin: 0; }\n",
+    "displayPanelCss": ".side { width: 10px; }\r\n.x { top: 0; }\r\n",
+    "displayJs": null,
+    "jsonMetadata": "{\"campaigns\":{\"lastActive\":\"abc\"},\"isGalleriesMigrated\":true}"
+  }
+}
