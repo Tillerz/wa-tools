@@ -145,6 +145,39 @@ Which folder goes where, with `backup_folder=~/data/alana` and `work_folder=~/da
 | World backup | `~/data/alana/world/` |
 
 
+## File names and safety
+
+Titles, slugs, ids and dates come from the API, and anybody who can write in a world can choose them. They may hold anything, for example
+`../../etc/x`. The scripts clean them before they become part of a path:
+
+| In a name | What happens |
+|---|---|
+| `/` and `\` | become `-`. (Before, everything before the last `/` was lost: the title `bow ("/baʊ/") - front part of the ship` was saved as `) - front part of the ship`.) |
+| `"` `?` `*` `<` `>` `:` `\|` | are removed (Windows does not allow them) |
+| `'` `%` `&` `[` `]` `(` `)` `,` `;` and non-ASCII letters | stay: they are valid on Linux and Windows (128 of your names have an apostrophe) |
+| backticks, `$( )`, `;`, `&&` | stay as plain text. Python does not run a shell, so nothing is executed. No script uses `os.system`, `shell=True`, `eval` or `exec` |
+| control characters, invisible characters (zero width space, the right-to-left override that fakes a file ending), lone surrogates | are removed |
+| dots, dashes and spaces at the start | are removed: a leading dot hides the file, a leading dash looks like an option to a command |
+| dots and spaces at the end | are removed: Windows drops them |
+| `.`, `..`, or nothing left | the id is used as the name |
+| Windows device names (`CON`, `NUL`, `COM1`, ...) | get an `_` at the end |
+| more than 150 bytes | are cut: a file name can have 255 bytes, and the id and the date are added |
+
+More protection:
+
+- the date in a file name is only used in the form `2026-01-10_081500`. Anything else is replaced by the time of the run.
+- the id part of a name is cleaned too, and ids in URLs are encoded.
+- before a backup file is written, a last check makes sure that it lands **directly in its folder**. Otherwise it is not saved, and a warning is
+  shown (and counted as a failed call).
+- an article whose slug or update date is not usable as a file name is not saved, and the run says so. `extract.py` makes its folder from the
+  cleaned slug.
+- `tests/test-hostile.sh` runs the backups against a fake API that answers with names made to escape (`../../x`, `..`, backslash paths, a path as
+  the id or the date, shell commands, invisible characters, 400 characters) and checks that every file lands in its folder.
+
+Not covered: `prepare.py`, `deploy.py` and `extract.py` also read names from local files and from the command line. Those are yours, not the
+API's. In the example `find.py ... | xargs -I{} ...` (section Find Articles), GNU `xargs` reads quotes in its input; `xargs` starts no shell, so
+a strange file name can break that line, but it can not run a command.
+
 # Scripts
 
 ## 1) Article Backup
@@ -990,6 +1023,7 @@ GitHub runs this on every push and pull request (`.github/workflows/tests.yml`);
 ./tests/test-prepare.sh
 ./tests/test-tagmgr.sh
 ./tests/test-names.sh
+./tests/test-hostile.sh
 ./tests/test-all.sh
 ./tests/test-common.sh
 ./tests/test-maps.sh
@@ -1037,6 +1071,13 @@ What changed in these scripts, most recent first. Useful when you update your ow
   thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
 - **Fixed: markers of maps with a denied marker list were not backed up** (see the maps notes).
+- **Security: names from the API can no longer decide where a file is written.** A title, slug, id or date like `../../etc/x` is cleaned before it
+  becomes part of a path, and a last check refuses to write a file that would leave its folder. Invisible characters, leading dots (hidden files),
+  Windows device names and very long names are handled. See [File names and safety](#file-names-and-safety). `backup-articles.py` and
+  `extract.py` had used the slug as it was, and `backup-articles.py` used `with_suffix()`, which cuts a name at its last dot.
+- **Fixed: a slash in a title cut the file name.** Everything before the last `/` was lost: `Action / Feat` was saved as `Feat`, and a marker
+  `bow ("/baʊ/") - front part of the ship` as `) - front part of the ship`. Now the slash becomes `-`. 24 saved files of 21 entities (14 block templates,
+  1 history event, 6 map items) were renamed to the right names, so no duplicates appear; the other names did not change.
 - **New: tests run on GitHub on every push** (`.github/workflows/tests.yml`), with a badge at the top of this README. `tests/run-all.sh` runs all
   tests and prints a summary. `requirements.txt` has the one package that the scripts need (`requests`); the README had also listed
   `beautifulsoup4` and `lxml`, which no script uses.

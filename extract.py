@@ -299,6 +299,11 @@ if file_input.is_file():
 
     title = jdata["title"]
     slug = jdata["slug"]
+    # the slug becomes the name of a folder: use it only in a form that is safe as a file name
+    safe_slug = sanitize_filename_component(slug)
+    if safe_slug == "":
+        print(f"Error: the slug {slug!r} is not usable as a folder name.")
+        raise SystemExit(1)
     wordcount = jdata["wordcount"]
     last_modif = jdata["updateDate"]["date"]
     fields = default_fields
@@ -321,7 +326,7 @@ if file_input.is_file():
         print(f'Field list: ' + ",".join(str(x) for x in default_fields))
         print('------------------------')
 
-        extract_folder = output_folder / slug
+        extract_folder = output_folder / safe_slug
 
         # create the extract folder if it doesn't exist
         try:

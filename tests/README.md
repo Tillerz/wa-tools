@@ -29,6 +29,8 @@ the rate limit.
 | `test-world.sh` | smoke test for `backup-world.py`: the files in `latest/`, line endings, nothing rewritten, a changed file is restored |
 | `test-prepare.sh` | test of `prepare.py` (no fake server): it must use `root_folder` and write nothing next to the script |
 | `test-tagmgr.sh` | test of `tagmgr.py` (no fake server): all commands, the payloads in the work folder, chained changes |
+| `fixtures-hostile.json` | the fake world of the hostile test: names, slugs, ids and dates made to escape their folder |
+| `test-hostile.sh` | the backups against that fake world: every file must land in its folder, nothing is written elsewhere, shell commands in names run nothing |
 | `test-names.sh` | looks for names that a script uses but never defines or imports (like a missing import), in all scripts |
 | `test-all.sh` | test of `backup-all.py`: the fixtures of all other tests are merged into one world, and the whole chain runs: summary, exit codes, `--only`, `--skip`, `--images`, a step that fails |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
@@ -58,6 +60,7 @@ One by one:
 ./tests/test-prepare.sh
 ./tests/test-tagmgr.sh
 ./tests/test-names.sh
+./tests/test-hostile.sh
 ./tests/test-all.sh
 ./tests/test-common.sh
 ```

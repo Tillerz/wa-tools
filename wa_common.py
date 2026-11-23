@@ -6,11 +6,20 @@ from glob import escape as glob_escape
 import json
 import os
 from pathlib import Path
+import re
 import requests
 import time
+import unicodedata
+from urllib.parse import quote
 
 TEXT_ENCODING = "utf-8"
 PAGESIZE = 50
+# a file name is limited to 255 bytes; the id and the date are added to the name of an entity
+MAX_NAME_BYTES = 150
+# Windows does not allow these as the name of a file or a folder, also not with an ending (CON.txt)
+WINDOWS_DEVICE_NAMES = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
+# the date in the name of a saved version, the only form that entity_timestamp accepts
+STAMP_FORMAT = re.compile(r"\d{4}-\d\d-\d\d_\d{6}")
 # matches the "_YYYY-MM-DD_HHMMSS.json" suffix of a saved version, and nothing else
 STAMP_GLOB = "_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].json"
 
@@ -62,11 +71,33 @@ def load_cfg_or_exit(path="settings.cfg"):
 
 
 def sanitize_filename_component(value):
-    invalid_filename_chars = '/\\<>:"|?*'
-    invalid_filename_chars += "".join(chr(i) for i in range(32))
-    table = str.maketrans("", "", invalid_filename_chars)
-    sanitized = os.path.basename(value.replace("\\", "/")).translate(table).strip()
-    return sanitized
+    """A text that is safe as one part of a file name, on Linux and Windows. Names come from the
+    API, and anybody who can write in a world can choose them, so they may hold anything.
+
+    - / and \\ become -. (The old rule kept only the text after the last separator: the title
+      bow ("/baʊ/") - front part of the ship  became  ) - front part of the ship.)
+      The result never has a path separator, so a name can not point to another folder.
+    - < > : " | ? * are removed, as before (Windows does not allow them).
+    - control characters, invisible format characters (a zero width space, the right-to-left
+      override that fakes a file ending) and lone surrogates (they break .encode) are removed.
+    - spaces at the start and the end are removed. Dots, dashes and spaces at the start are removed
+      too: a leading dot makes a hidden file, a leading dash looks like an option to a command.
+      Dots and spaces at the end are removed: Windows drops them.
+    - a name that is empty after that (for example . or .., which would be the parent folder) is
+      empty, and the callers take another name (the id).
+    - a name that Windows reserves for a device (CON, NUL, COM1, ...) gets an _ at the end.
+    - more than MAX_NAME_BYTES bytes (UTF-8) are cut, not in the middle of a character.
+    These stay, they are valid on Linux and Windows: ' % & [ ] ( ) , ; and non-ASCII letters.
+    """
+    text = "" if value is None else str(value)
+    text = text.replace("/", "-").replace("\\", "-")
+    text = "".join(ch for ch in text if ch not in '<>:"|?*' and unicodedata.category(ch) not in ("Cc", "Cf", "Cs"))
+    text = text.strip().lstrip(". -").rstrip(". ")
+    if len(text.encode("utf-8")) > MAX_NAME_BYTES:
+        text = text.encode("utf-8")[:MAX_NAME_BYTES].decode("utf-8", errors="ignore").strip().rstrip(". ")
+    if text.split(".")[0].strip().upper() in WINDOWS_DEVICE_NAMES:
+        text += "_"
+    return text
 
 
 def ensure_dir(path):
@@ -196,7 +227,7 @@ def patch_article(session, api_url, article_id, payload, request_headers, timeou
 
 
 def fetch_entity(session, api_url, path, entity_id, request_headers, granularity=2):
-    endpoint = api_url + path + "?id=" + str(entity_id) + "&granularity=" + str(granularity)
+    endpoint = api_url + path + "?id=" + quote(str(entity_id), safe="") + "&granularity=" + str(granularity)
     response = session.get(endpoint, headers=request_headers)
     response.raise_for_status()
     return response.json()
@@ -212,7 +243,7 @@ def fetch_entity_list_page(
     limit=50,
     offset=0,
 ):
-    endpoint = api_url + path + "?id=" + str(entity_id) + "&granularity=" + str(granularity)
+    endpoint = api_url + path + "?id=" + quote(str(entity_id), safe="") + "&granularity=" + str(granularity)
     payload = {"limit": limit, "offset": offset}
     response = session.post(endpoint, json=payload, headers=request_headers)
     response.raise_for_status()
@@ -240,12 +271,15 @@ def rate_limiter_from_cfg(cfg):
 
 
 def entity_timestamp(data, fallback):
+    """The updateDate of an entity as the date in a file name (2026-01-10_081500), or <fallback>.
+    A date that does not have exactly this form is not used: it would become part of a path."""
     raw = data.get("updateDate")
     if isinstance(raw, dict):
         raw = raw.get("date")
     if not isinstance(raw, str) or raw == "":
         return fallback
-    return raw.replace(".000000", "").replace(" ", "_").replace(":", "")
+    stamp = raw.replace(".000000", "").replace(" ", "_").replace(":", "")
+    return stamp if STAMP_FORMAT.fullmatch(stamp) else fallback
 
 
 def entity_basename(data, used):
@@ -256,9 +290,9 @@ def entity_basename(data, used):
             base = sanitize_filename_component(value.strip())
             if base != "":
                 break
-    entity_id = str(data.get("id") or "")  # block and block folder ids are integers
+    entity_id = sanitize_filename_component(data.get("id") or "")  # block and block folder ids are integers
     if base == "":
-        base = sanitize_filename_component(entity_id) or "unnamed"
+        base = entity_id or "unnamed"
     if used.get(base, entity_id) != entity_id:
         base = base + "_" + entity_id[:8]
     used[base] = entity_id
@@ -294,6 +328,13 @@ def save_versioned(folder, base, data, timestamp, ignore=()):
     The change of a volatile field alone (see without_volatile) does not count.
     <ignore> names more top-level fields that do not count, for example statistics. The
     file keeps them."""
+    target = Path(folder) / f"{base}_{timestamp}.json"
+    if any(c in f"{base}{timestamp}" for c in "/\\") or target.resolve().parent != Path(folder).resolve():
+        # the names are cleaned where they are made; this is the last check before a file is written.
+        # A backslash is refused on Linux too, where it is only a character: on Windows it is a separator.
+        print(f"    WARNING: not saved, the file name would leave the folder: {base!r} {timestamp!r}")
+        warnings.append(f"unsafe file name {base!r}")
+        return False
     ensure_dir(folder)
     previous = newest_version(folder, base)
     if previous is not None:
@@ -306,7 +347,6 @@ def save_versioned(folder, base, data, timestamp, ignore=()):
                 return False
         except (OSError, ValueError):
             pass
-    target = Path(folder) / f"{base}_{timestamp}.json"
     if target.exists():
         # the content changed, but the date did not (the entity was changed without a new
         # updateDate): do not overwrite the older version, name this one by the time of the run
@@ -396,7 +436,7 @@ def stable_basename(data, used):
     between runs. If two entities of one list still end up with the same name (the
     same title and the same first 8 characters of the id), the second one gets its
     full id, so two entities can never share a file."""
-    entity_id = str(data.get("id") or "")  # block and block folder ids are integers
+    entity_id = sanitize_filename_component(data.get("id") or "")  # block and block folder ids are integers
     base = ""
     for key in ("slug", "title", "name"):
         value = data.get(key)

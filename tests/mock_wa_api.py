@@ -21,6 +21,7 @@ import argparse
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from urllib.parse import unquote
 
 DEFAULT_LIMIT = 50
 
@@ -146,7 +147,7 @@ def make_handler(data, options):
         def parse(self):
             path, _, query = self.path.partition("?")
             path = path.split("boromir/", 1)[-1].strip("/")
-            params = dict(part.split("=", 1) for part in query.split("&") if "=" in part)
+            params = {key: unquote(value) for key, value in (part.split("=", 1) for part in query.split("&") if "=" in part)}
             return path, params
 
         def forbidden(self, path, entity_id):

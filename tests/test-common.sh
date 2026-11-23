@@ -110,6 +110,81 @@ cfg_paths = world_paths_from_cfg({"world_name": "w", "root_folder": "/b", "work_
 check("world_paths_from_cfg reads the settings", ["/b/w/maps", "/work/w.work/edit"], [str(cfg_paths["maps"]), str(cfg_paths["edit"])])
 check("an empty setting counts as not set", "/b/w/edit", str(world_paths_from_cfg({"world_name": "w", "root_folder": "/b", "work_folder": "", "backup_folder": ""})["edit"]))
 
+# file names made from the name of an entity
+from wa_common import sanitize_filename_component as sanitize
+check("a slash does not cut the name (it was: everything before the last / was lost)",
+      'bow (-baʊ-) - front part of the ship', sanitize('bow ("/baʊ/") - front part of the ship'))
+check("a slash with spaces", "Action - Feat", sanitize("Action / Feat"))
+check("a slash without spaces", "NPC-Monster", sanitize("NPC/Monster"))
+check("a backslash", "a-b-c", sanitize("a\\b\\c"))
+check("a path to the parent folder stays harmless (no leading dots, no slash)", "etc-passwd", sanitize("../etc/passwd"))
+check("a name with leading dots would be a hidden file: the dots are removed", "hidden", sanitize(".hidden"))
+check("leading dots and a title that is a sentence", "and so on", sanitize("...and so on"))
+check("a leading dash would look like an option to a command: it is removed", "rf", sanitize("-rf"))
+check("dots, dashes and spaces inside a name stay", "Mr. Smith - v1.2", sanitize("Mr. Smith - v1.2"))
+check("no path separator is left", False, any(c in sanitize("a/b\\c//d") for c in "/\\"))
+check("characters that Windows does not allow are removed, as before", "What Now yes no", sanitize("What? *Now*: <yes> |no|"))
+check("a colon is removed, as before", "Appendix Calendar", sanitize("Appendix: Calendar"))
+check("control characters are removed", "abc", sanitize("a\x01b\tc"))
+check("spaces at the start and the end are removed", "padded", sanitize("  padded  "))
+check("a normal name stays as it is", "Great Library (2nd edition) - östlich", sanitize("Great Library (2nd edition) - östlich"))
+check("empty stays empty", "", sanitize(""))
+check("a long name is cut to at most 150 bytes, not in the middle of a character", "ä" * 75, sanitize("ä" * 100))
+check("a long ASCII name", "x" * 150, sanitize("x" * 300))
+check("the cut leaves no space at the end", "word", sanitize("word" + " " * 200 + "tail")[:4] + "")
+check("a name of 124 bytes (the longest in the real data) is not cut", "y" * 124, sanitize("y" * 124))
+
+# security: nothing from the API may decide where a file is written
+from wa_common import entity_basename, entity_timestamp, stable_basename
+check(".. as a name is not usable (it would be the parent folder)", "", sanitize(".."))
+check(". as a name is not usable", "", sanitize("."))
+check(".. with spaces is not usable", "", sanitize("  ..  "))
+check("a name of only dots and dashes is no name", "", sanitize(" .-. - "))
+# the characters that were asked about: " ' / \ ? %
+check("the characters \" ' / \\ ? % together", "say hi it's 100% ok yes-no-maybe", sanitize('say "hi" it\'s 100% ok? yes/no\\maybe'))
+check("an apostrophe stays (valid everywhere, 128 names have one)", "Land's End", sanitize("Land's End"))
+check("a percent sign stays", "100% done", sanitize("100% done"))
+check("percent-encoded dots and slashes are only text, they are never decoded", "%2e%2e%2fetc", sanitize("%2e%2e%2fetc"))
+check("brackets and an ampersand stay", "Kingdoms & Warfare [small]", sanitize("Kingdoms & Warfare [small]"))
+# invisible characters, and characters that break the encoder
+check("a right-to-left override (it fakes a file ending) is removed", "evilgpj.exe", sanitize("evil\u202egpj.exe"))
+check("a zero width space is removed", "ab", sanitize("a\u200bb"))
+check("a lone surrogate is removed (it would break .encode)", "x", sanitize("\ud800x"))
+check("the result can always be encoded", True, bool(sanitize("\ud800\udfffz\u0085y").encode("utf-8")))
+check("the first 150 bytes are cut after the invisible characters are gone", "ä" * 75, sanitize("\u200b" + "ä" * 100))
+# Windows: no trailing dots or spaces, no device names (a name can be the name of a folder)
+check("a trailing dot is removed (Windows would drop it)", "Mr", sanitize("Mr. "))
+check("trailing dots are removed", "name", sanitize("name..."))
+check("a device name of Windows gets an underscore", "CON_", sanitize("CON"))
+check("a device name in lower case", "nul_", sanitize("nul"))
+check("a device name with a number", "LPT9_", sanitize("LPT9"))
+check("a name that only starts like a device name", "Console", sanitize("Console"))
+check("a name that is only .. falls back to the id", "00000000-aaaa", entity_basename({"id": "00000000-aaaa", "title": ".."}, {}))
+check("stable name for a title ..: the name is the start of the id", "00000000", stable_basename({"id": "00000000-aaaa", "title": ".."}, {}))
+hostile = stable_basename({"id": "../../x/1234567", "title": "../../etc/passwd"}, {})
+check("hostile title and id: no separator in the stable name", False, "/" in hostile or "\\" in hostile or hostile in ("", ".", ".."))
+hostile = entity_basename({"id": "../../x/1234567", "title": "x"}, {"x": "other-id"})
+check("hostile id in the collision suffix: no separator", False, "/" in hostile or "\\" in hostile)
+check("a good update date becomes a stamp", "2026-01-10_081500", entity_timestamp({"updateDate": {"date": "2026-01-10 08:15:00.000000"}}, "FALLBACK"))
+check("an update date with a path is not used", "FALLBACK", entity_timestamp({"updateDate": {"date": "../../../etc/x"}}, "FALLBACK"))
+check("an update date in another format is not used", "FALLBACK", entity_timestamp({"updateDate": {"date": "2026-01-10 08:15:00.123456"}}, "FALLBACK"))
+check("no update date: the fallback", "FALLBACK", entity_timestamp({"updateDate": None}, "FALLBACK"))
+
+# save_versioned must write directly into its folder, whatever the name says
+import wa_common
+import shutil
+outside = folder.parent / "outside-target"      # next to the folder of the test: where a hostile name would write to
+shutil.rmtree(outside, ignore_errors=True)
+outside.mkdir()
+before = len(wa_common.warnings)
+for hostile_base, hostile_stamp in (("../outside-target/escaped", "2026-01-01_000000"), ("ok", "../outside-target/x"), ("a/../../outside-target/b", "2026-01-01_000000"), ("..\\outside-target\\c", "2026-01-01_000000")):
+    saved = save_versioned(folder, hostile_base, {"id": 1}, hostile_stamp)
+    check(f"hostile name {hostile_base!r} / {hostile_stamp!r} is not saved", False, saved)
+check("nothing was written outside the folder", 0, len(list(outside.iterdir())))
+check("each refusal is a warning", 4, len(wa_common.warnings) - before)
+wa_common.warnings[before:] = []
+check("a normal name is still saved", True, save_versioned(folder, "fine", {"id": 1}, "2026-01-01_000000"))
+
 # the settings template must match what the code reads
 from wa_common import load_cfg
 template = load_cfg("settings-template.cfg")

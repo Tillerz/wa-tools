@@ -13,11 +13,13 @@ from wa_common import (
     build_request_headers,
     chdir_to_script_dir,
     ensure_dir,
+    entity_timestamp,
     fetch_all_pages,
     fetch_article,
     load_cfg_or_exit,
     rate_limiter_from_cfg,
     read_text,
+    sanitize_filename_component,
     world_paths_from_cfg,
     write_json,
 )
@@ -89,6 +91,7 @@ with requests.Session() as session:
         if "id" in a
     }
     updated_count = 0
+    unusable_count = 0
     unchanged_count = 0
     new_articles = []
     for a in all_articles_new:
@@ -124,10 +127,16 @@ with requests.Session() as session:
         wordcount = jdata["wordcount"]
         last_modif = jdata["updateDate"]["date"]
 
-        # build path + filename to save the json:
-        file_json_article_base = articles_folder / (
-            slug + '_' + last_modif.replace(".000000","").replace(' ','_').replace(':','')
-        )
+        # build path + filename to save the json. The slug and the date come from the API and become
+        # part of a file name, so they are only used in a form that is safe as a file name
+        safe_slug = sanitize_filename_component(slug)
+        stamp = entity_timestamp(jdata, "")
+        if safe_slug == "" or stamp == "":
+            print(f'WARNING: article {article_id} is not saved: its slug or its update date is not usable as a file name ({slug!r}, {last_modif!r})')
+            unusable_count += 1
+            continue
+        # (not with_suffix(): it would replace everything after the last dot of the name)
+        article_json_path = articles_folder / (safe_slug + '_' + stamp + '.json')
         last_modif_old = ""
         old_wordcount = 0
         diff = 0
@@ -135,7 +144,6 @@ with requests.Session() as session:
         wdiff = ""
 
         # if the file already exists, load it and extract some values for comparison with the new downloaded version
-        article_json_path = file_json_article_base.with_suffix('.json')
         if article_json_path.is_file():
             oldfile = read_text(article_json_path)
 
@@ -171,6 +179,8 @@ with requests.Session() as session:
         remaining -= 1
         print(f'------------------------ {remaining}')
 
+    if unusable_count:
+        print(f"{unusable_count} articles were not saved: their slug or update date is not usable as a file name.")
     if updated_count == 0:
         print(f"{unchanged_count} articles were already up-to-date.")
         if file_all_articles_new.is_file():

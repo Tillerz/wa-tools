@@ -1,0 +1,215 @@
+{
+  "secrets": [
+    {
+      "id": "s1111111-0000-0000-0000-000000000001",
+      "title": "../../escape-secret",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s2222222-0000-0000-0000-000000000002",
+      "title": "..",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "../../escape-date"
+      }
+    },
+    {
+      "id": "s3333333-0000-0000-0000-000000000003",
+      "title": "bow (\"/baʊ/\") - front part of the ship",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s4444444-0000-0000-0000-000000000004",
+      "title": "Action / Feat",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s5555555-0000-0000-0000-000000000005",
+      "title": "a\\b\\..\\..\\c",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "../../escape-id",
+      "title": "Hostile id",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s7777777-0000-0000-0000-000000000007",
+      "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s8888888-0000-0000-0000-000000000008",
+      "title": "say \"hi\" it's 100% ok? [x] yes/no\\maybe",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s9999999-0000-0000-0000-000000000009",
+      "title": "evil‮gpj.exe​",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s1010101-0000-0000-0000-000000000010",
+      "title": "`touch tests/out/PWNED-backtick`",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s1111112-0000-0000-0000-000000000011",
+      "title": "$(touch tests/out/PWNED-dollar)",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s1212123-0000-0000-0000-000000000012",
+      "title": "x; touch tests/out/PWNED-semicolon",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "s1313134-0000-0000-0000-000000000013",
+      "title": "y && touch tests/out/PWNED-and || touch tests/out/PWNED-or",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "content": "text",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": "c1111111-0000-0000-0000-000000000001",
+      "title": "..",
+      "slug": null,
+      "entityClass": "Category",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "c2222222-0000-0000-0000-000000000002",
+      "title": ".",
+      "slug": null,
+      "entityClass": "Category",
+      "updateDate": null
+    }
+  ],
+  "articles": [
+    {
+      "id": "a1111111-0000-0000-0000-000000000001",
+      "title": "Article a111",
+      "slug": "../../escape-article",
+      "entityClass": "Article",
+      "state": "public",
+      "wordcount": 10,
+      "content": "x",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "a2222222-0000-0000-0000-000000000002",
+      "title": "Article a222",
+      "slug": "normal-article",
+      "entityClass": "Article",
+      "state": "public",
+      "wordcount": 10,
+      "content": "x",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "a3333333-0000-0000-0000-000000000003",
+      "title": "Article a333",
+      "slug": "..",
+      "entityClass": "Article",
+      "state": "public",
+      "wordcount": 10,
+      "content": "x",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      }
+    },
+    {
+      "id": "a4444444-0000-0000-0000-000000000004",
+      "title": "Article a444",
+      "slug": "bad-date",
+      "entityClass": "Article",
+      "state": "public",
+      "wordcount": 10,
+      "content": "x",
+      "updateDate": {
+        "date": "../../escape-date"
+      }
+    }
+  ]
+}
