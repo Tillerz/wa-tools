@@ -64,8 +64,8 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 
 Script:
 
-- Linux/macOS: `python3 backup-full.py [options]`
-- Windows: `backup-full.cmd [options]`
+- Linux/macOS: `python3 backup-articles.py [options]`
+- Windows: `backup-articles.cmd [options]`
 
 Purpose:
 
@@ -75,7 +75,7 @@ Purpose:
 Usage:
 
 ```bash
-usage: backup-full.py [-h] [--settings FILE]
+usage: backup-articles.py [-h] [--settings FILE]
 ```
 
 Parameters:
@@ -481,7 +481,7 @@ See [tests/README.md](tests/README.md).
 
 # Typical Workflow
 
-1. `python3 backup-full.py`
+1. `python3 backup-articles.py`
 2. `python3 extract.py <article-json-file>`
 3. update/add files in `<world_name>/edit/<article-slug>/`
 4. `python3 tagmgr --add <tag list> <article-slug>`
