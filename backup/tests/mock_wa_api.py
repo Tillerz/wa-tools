@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """Fake World Anvil Boromir API, for testing the backup scripts offline.
 
-It answers the map and article endpoints that backup-maps.py and
-backup-articles.py use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
+It answers the map, article and manuscript endpoints that backup-maps.py,
+backup-articles.py and backup-manuscripts.py use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
 testable:
 
   --short-pages   hand back one entry less than the requested limit, while more
@@ -22,11 +22,34 @@ from pathlib import Path
 
 DEFAULT_LIMIT = 50
 
+# List endpoints below a parent entity: path -> fixture key. The fixture holds a dict
+# { "<parent uuid>": [entries] } under that key.
+CHILD_LISTS = {
+    "manuscript/manuscript_versions": "manuscript_versions",
+    "manuscript/manuscript_labels": "manuscript_labels",
+    "manuscript/manuscript_tags": "manuscript_tags",
+    "manuscript_version/manuscript_parts": "version_parts",
+    "manuscript_version/manuscript_stats": "version_stats",
+    "manuscript_version/manuscript_plots": "version_plots",
+    "manuscript_part/manuscript_beats": "part_beats",
+}
+# Single reads: path -> fixture key to look the entity up in.
+CHILD_READS = {
+    "manuscript_version": "manuscript_versions",
+    "manuscript_part": "version_parts",
+    "manuscript_stat": "version_stats",
+    "manuscript_label": "manuscript_labels",
+    "manuscript_tag": "manuscript_tags",
+    "manuscript_plot": "version_plots",
+    "manuscript_beat": "part_beats",
+}
+
 
 def load_fixture(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    for key in ("maps", "articles", "layers", "markergroups", "groupmarkers", "markers"):
-        data.setdefault(key, [] if key in ("maps", "articles") else {})
+    for key in ("maps", "articles", "manuscripts", "layers", "markergroups", "groupmarkers", "markers",
+                *CHILD_LISTS.values()):
+        data.setdefault(key, [] if key in ("maps", "articles", "manuscripts") else {})
     return data
 
 
@@ -95,6 +118,10 @@ def make_handler(data, options):
                 return self.reply({"success": False, "error": "forbidden"}, 403)
             if path == "article":
                 entity = find_entity([data["articles"]], entity_id)
+            elif path == "manuscript":
+                entity = find_entity([data["manuscripts"]], entity_id)
+            elif path in CHILD_READS:
+                entity = find_entity(data[CHILD_READS[path]].values(), entity_id)
             elif path == "map":
                 entity = find_entity([data["maps"]], entity_id)
             elif path == "markergroup":
@@ -123,6 +150,10 @@ def make_handler(data, options):
                 entries = data["maps"]
             elif path == "world/articles":
                 entries = data["articles"]
+            elif path == "world/manuscripts":
+                entries = data["manuscripts"]
+            elif path in CHILD_LISTS:
+                entries = data[CHILD_LISTS[path]].get(entity_id, [])
             elif path == "map/layers":
                 entries = data["layers"].get(entity_id, [])
             elif path == "map/markergroups":
@@ -163,7 +194,8 @@ add_bulk_markers(fixture, options.bulk_markers)
 add_bulk_articles(fixture, options.bulk_articles)
 server = HTTPServer(("127.0.0.1", options.port), make_handler(fixture, options))
 print(f"Mock WA API on http://127.0.0.1:{options.port} using {options.data}")
-print(f"  maps: {len(fixture['maps'])}, articles: {len(fixture['articles'])}, short-pages: {options.short_pages}, forbid: {options.forbid or 'none'}")
+print(f"  maps: {len(fixture['maps'])}, articles: {len(fixture['articles'])}, "
+      f"manuscripts: {len(fixture['manuscripts'])}, short-pages: {options.short_pages}, forbid: {options.forbid or 'none'}")
 try:
     server.serve_forever()
 except KeyboardInterrupt:

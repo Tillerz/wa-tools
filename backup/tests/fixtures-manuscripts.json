@@ -1,0 +1,136 @@
+{
+  "manuscripts": [
+    {
+      "id": "mmmmmmmm-0000-0000-0000-000000000001",
+      "title": "The End of the Loaf",
+      "slug": "2661281675-test-the-end-of-the-loaf",
+      "state": null,
+      "entityClass": "Manuscript",
+      "updateDate": {
+        "date": "2026-11-05 15:15:16.000000"
+      }
+    },
+    {
+      "id": "mmmmmmmm-0000-0000-0000-000000000002",
+      "title": "The Wrong Half",
+      "slug": "3000000000-test-the-wrong-half",
+      "state": null,
+      "entityClass": "Manuscript",
+      "updateDate": {
+        "date": "2026-10-01 10:00:00.000000"
+      }
+    }
+  ],
+  "manuscript_versions": {
+    "mmmmmmmm-0000-0000-0000-000000000001": [
+      {
+        "id": "vvvvvvvv-0000-0000-0000-000000000001",
+        "title": "Draft 1",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptVersion",
+        "updateDate": {
+          "date": "2020-06-18 05:31:51.000000"
+        }
+      }
+    ],
+    "mmmmmmmm-0000-0000-0000-000000000002": [
+      {
+        "id": "vvvvvvvv-0000-0000-0000-000000000002",
+        "title": "Draft 1",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptVersion",
+        "updateDate": {
+          "date": "2020-07-01 05:31:51.000000"
+        }
+      }
+    ]
+  },
+  "manuscript_labels": {
+    "mmmmmmmm-0000-0000-0000-000000000001": [
+      {
+        "id": "llllllll-0000-0000-0000-000000000001",
+        "title": "Blue",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptLabel",
+        "updateDate": null,
+        "color": "#d8fffc"
+      }
+    ],
+    "mmmmmmmm-0000-0000-0000-000000000002": []
+  },
+  "manuscript_tags": {
+    "mmmmmmmm-0000-0000-0000-000000000001": [],
+    "mmmmmmmm-0000-0000-0000-000000000002": []
+  },
+  "version_parts": {
+    "vvvvvvvv-0000-0000-0000-000000000001": [
+      {
+        "id": "pppppppp-0000-0000-0000-000000000001",
+        "title": "The Tally",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptPart",
+        "updateDate": null,
+        "content": "Text of part 1",
+        "wordcount": 10,
+        "position": 1
+      },
+      {
+        "id": "pppppppp-0000-0000-0000-000000000002",
+        "title": "The End of the Loaf",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptPart",
+        "updateDate": null,
+        "content": "Text of part 2",
+        "wordcount": 11,
+        "position": 2
+      },
+      {
+        "id": "pppppppp-0000-0000-0000-000000000003",
+        "title": "The End of the Loaf",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptPart",
+        "updateDate": null,
+        "content": "Text of part 3",
+        "wordcount": 12,
+        "position": 3
+      }
+    ],
+    "vvvvvvvv-0000-0000-0000-000000000002": []
+  },
+  "version_stats": {
+    "vvvvvvvv-0000-0000-0000-000000000001": [
+      {
+        "id": "ssssssss-0000-0000-0000-000000000001",
+        "title": "untitled",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptStat",
+        "updateDate": null,
+        "wordcount": 4
+      }
+    ],
+    "vvvvvvvv-0000-0000-0000-000000000002": []
+  },
+  "version_plots": {
+    "vvvvvvvv-0000-0000-0000-000000000001": [],
+    "vvvvvvvv-0000-0000-0000-000000000002": []
+  },
+  "part_beats": {
+    "pppppppp-0000-0000-0000-000000000001": [
+      {
+        "id": "bbbbbbbb-0000-0000-0000-000000000001",
+        "title": "Opening beat",
+        "slug": null,
+        "state": null,
+        "entityClass": "ManuscriptBeat",
+        "updateDate": null
+      }
+    ]
+  }
+}

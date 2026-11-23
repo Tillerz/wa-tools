@@ -90,6 +90,7 @@ def world_paths(world_name, root_folder=None):
         "deploy": root / "deploy",
         "text-export": root / "text-export",
         "maps": root / "maps",
+        "manuscripts": root / "manuscripts",
     }
 
 
@@ -337,6 +338,141 @@ def safe_fetch(label, default, action):
 
 def sort_by_id(entities):
     return sorted(entities, key=lambda e: e.get("id") or "")
+
+
+def stable_basename(data, used):
+    """File name that stays the same between runs: <slug or title>_<first 8 of id>.
+
+    Titles are not unique (a manuscript can have three parts with the same title), and
+    some entities have no update date. A name that depends on the id does not change
+    between runs. If two entities of one list still end up with the same name (the
+    same title and the same first 8 characters of the id), the second one gets its
+    full id, so two entities can never share a file."""
+    entity_id = data.get("id") or ""
+    base = ""
+    for key in ("slug", "title", "name"):
+        value = data.get(key)
+        if isinstance(value, str) and value.strip() != "":
+            base = sanitize_filename_component(value.strip())
+            if base != "":
+                break
+    if entity_id == "":
+        return base or "unnamed"
+    name = (base + "_" if base else "") + entity_id[:8]
+    if used.get(name, entity_id) != entity_id:
+        name = (base + "_" if base else "") + entity_id
+    used[name] = entity_id
+    return name
+
+
+class BackupRun:
+    """One run of a backup script: the API connection, the rate limit, and the
+    helpers that read entities and save them as versioned files."""
+
+    def __init__(self, session, api_url, request_headers, limiter, granularity=2):
+        self.session = session
+        self.api_url = api_url
+        self.request_headers = request_headers
+        self.limiter = limiter
+        self.granularity = granularity
+        self.run_stamp = time.strftime("%Y-%m-%d_%H%M%S")
+        self.start = time.monotonic()
+        self.written = 0
+        self.detail_calls = 0
+
+    def save(self, folder, base, data, stamp):
+        if save_versioned(folder, base, data, stamp):
+            self.written += 1
+
+    def read(self, label, path, entity_id):
+        """GET one entity. On an API error: warn, return None."""
+        self.limiter.wait()
+        data = safe_fetch(label, None, lambda: fetch_entity(
+            self.session, self.api_url, path, entity_id, self.request_headers, self.granularity))
+        if data is not None:
+            self.detail_calls += 1
+        return data
+
+    def listing(self, label, path, parent_id):
+        """POST one list endpoint, all pages. On an API error: warn, return None.
+        None is not the same as an empty list: a failed call must not be saved as
+        "this entity has no children"."""
+        return safe_fetch(label, None, lambda: fetch_all_pages(
+            self.limiter, self.session, self.api_url, path, parent_id,
+            self.request_headers, self.granularity))
+
+    def backup_children(self, label, list_path, read_path, parent_id, folder, list_name,
+                        skip_if_empty=False):
+        """Save the list of the children of one entity, and every child itself.
+
+        The list entries are thin: a part or a note in a list has little or no content,
+        so every child is read once with its own GET. The list goes to
+        <folder>/<list_name>_<date>.json, the children to
+        <folder>/<list_name>/<name>_<date>.json.
+        With skip_if_empty, an empty list that was never saved before is not written
+        and not printed (used for the beats: most parts have none).
+        Returns [(list entry, file base name)], for the caller to go on with."""
+        entries = self.listing(f"{label}: {list_name} list", list_path, parent_id)
+        if entries is None:
+            return []
+        if entries or not skip_if_empty or newest_version(folder, list_name):
+            self.save(folder, list_name, entries, self.run_stamp)
+            print(f"    {list_name}: {len(entries)}")
+        result = []
+        used = {}
+        for entry in sort_by_id(entries):
+            if not entry.get("id"):
+                continue
+            base = stable_basename(entry, used)
+            data = self.read(f"{label}: {list_name} {base}", read_path, entry["id"])
+            if data is not None:
+                self.save(folder / list_name, base, data, entity_timestamp(data, self.run_stamp))
+            result.append((entry, base))
+        return result
+
+    def print_summary(self, incomplete):
+        """Print the end of a run. <incomplete> names what a failed call leaves
+        incomplete, for example "manuscripts"."""
+        print(f"Wrote {self.written} files, {self.detail_calls} detail requests.")
+        if warnings:
+            print(f"{len(warnings)} API calls failed, these {incomplete} are incomplete:")
+            for label in warnings:
+                print(f"  {label}")
+        minutes, seconds = divmod(int(time.monotonic() - self.start), 60)
+        print(f"Elapsed time: {minutes}m {seconds:02d}s")
+
+
+def select_entities(entities, query):
+    """Find the entities that the user asked for, by uuid, slug or title.
+    An exact match wins over a partial one."""
+    wanted = query.strip().lower()
+
+    def field(entity, key):
+        return (entity.get(key) or "").strip().lower()
+
+    by_id = [e for e in entities if field(e, "id") == wanted]
+    if by_id:
+        return by_id
+    exact = [e for e in entities if wanted in (field(e, "slug"), field(e, "title"))]
+    if exact:
+        return exact
+    return [e for e in entities if wanted in field(e, "title") or wanted in field(e, "slug")]
+
+
+def select_one_or_exit(entities, query, kind):
+    """Return a one-entry list for the entity the user asked for. Stop the script
+    if nothing matches or if the query is not precise enough."""
+    selected = select_entities(entities, query)
+    if not selected:
+        print(f"No {kind} matches '{query}'. Use the {kind} uuid or a part of its title.")
+        raise SystemExit(1)
+    if len(selected) > 1:
+        print(f"'{query}' matches {len(selected)} {kind}s, please be more precise:")
+        for entry in selected:
+            print(f"  {entry.get('title')}  ({entry.get('id')})")
+        raise SystemExit(1)
+    print(f"Backing up 1 {kind}: {selected[0].get('title')}")
+    return selected
 
 
 writing_fields = (

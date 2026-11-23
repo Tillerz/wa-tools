@@ -14,6 +14,10 @@ Scripts in this folder support a full article flow:
 
 1. download map JSON backups, with layers, marker groups and markers
 
+## Manuscripts
+
+1. download manuscript JSON backups, with versions, parts, beats, stats, plots, labels and tags
+
 
 # Requirements
 
@@ -56,6 +60,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Deploy payloads | `~/data/alana/deploy/` |
 | Text exports | `~/data/alana/text-export/` |
 | Map backups | `~/data/alana/maps/` |
+| Manuscript backups | `~/data/alana/manuscripts/` |
 
 
 # Scripts
@@ -167,7 +172,78 @@ Notes:
 - a run always refreshes `maps/all_maps_<date>.json`, also with `--map`
 
 
-## 3) Find Articles
+## 3) Full Manuscript Backup
+
+Script:
+
+- Linux/macOS: `python3 backup-manuscripts.py [options]`
+- Windows: `backup-manuscripts.cmd [options]`
+
+Purpose:
+
+- fetches all manuscripts of the world via WA API, with granularity 2
+- stores manuscripts, versions, parts, beats, stats, plots, labels and tags in `<world_name>/manuscripts/`
+
+Usage:
+
+```bash
+usage: backup-manuscripts.py [-h] [--manuscript MANUSCRIPT] [--settings FILE]
+```
+
+Parameters:
+
+- `--manuscript <uuid, slug or title>` back up one manuscript only. A part of the
+  title is enough, as long as it matches only one manuscript; if it matches several,
+  the script lists them and stops.
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Examples:
+
+```bash
+# every manuscript, everything in it
+python3 backup-manuscripts.py
+
+# one manuscript, by a part of its title
+python3 backup-manuscripts.py --manuscript "wrong half"
+```
+
+Folder layout per manuscript (`<ms>` is the manuscript slug):
+
+| File | Content |
+|---|---|
+| `manuscripts/all_manuscripts_<date>.json` | list of all manuscripts of the world |
+| `manuscripts/<ms>/manuscript_<date>.json` | manuscript details |
+| `manuscripts/<ms>/labels_<date>.json`, `labels/<label>_<date>.json` | label list, one file per label |
+| `manuscripts/<ms>/tags_<date>.json`, `tags/<tag>_<date>.json` | tag list, one file per tag |
+| `manuscripts/<ms>/versions_<date>.json` | list of versions |
+| `manuscripts/<ms>/versions/<version>_<date>.json` | version details |
+| `manuscripts/<ms>/versions/<version>/parts_<date>.json` | list of parts of the version |
+| `manuscripts/<ms>/versions/<version>/parts/<part>_<date>.json` | one part, with its text |
+| `manuscripts/<ms>/versions/<version>/parts/<part>_beats_<date>.json` | beat list of the part, only if the part has beats |
+| `manuscripts/<ms>/versions/<version>/parts/<part>_beats/<beat>_<date>.json` | one beat |
+| `manuscripts/<ms>/versions/<version>/stats_<date>.json`, `stats/` | stat list, one file per stat |
+| `manuscripts/<ms>/versions/<version>/plots_<date>.json`, `plots/` | plot list, one file per plot |
+
+Notes:
+
+- versions, parts, stats and plots are named `<title>_<first 8 characters of the id>`.
+  Titles are not unique (a manuscript can have several parts with the same title), the
+  id part keeps the file name the same between runs.
+- parts have no update date in the API, so `<date>` is the start time of the run, and
+  the script reads every part on every run. A new version file is only written when the
+  content really changed.
+- the list calls only return short entries, so every label, tag, version, part, stat,
+  plot and beat is read again with its own call. A run takes about 1 second per call.
+- **manuscript bookmarks are not backed up.** World Anvil answers with error 422 for
+  `POST /manuscript/manuscript_bookmarks` (checked 2026-11-23): their database query is
+  broken. Parts of a manuscript cannot be listed by manuscript either, only by version.
+- one failed API call only skips that one call; the rest is still saved, and all
+  failures are listed at the end. A failed list is never saved as an empty list.
+- requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
+
+
+## 4) Find Articles
 
 Script:
 
@@ -218,7 +294,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 4) Extract Editable Fields
+## 5) Extract Editable Fields
 
 Script:
 
@@ -284,7 +360,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 5) Prepare Deploy Payload for One Article
+## 6) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -317,7 +393,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 6) Tag Manager
+## 7) Tag Manager
 
 Script:
 
@@ -441,7 +517,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 7) Deploy Payloads
+## 8) Deploy Payloads
 
 Script:
 
@@ -476,6 +552,7 @@ without an auth token. Each test is named after what it tests:
 
 ```bash
 ./tests/test-articles.sh
+./tests/test-manuscripts.sh
 ./tests/test-maps.sh
 ```
 

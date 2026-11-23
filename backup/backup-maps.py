@@ -23,25 +23,13 @@ from wa_common import (
     safe_fetch,
     save_cookies,
     save_versioned,
+    select_one_or_exit,
     sort_by_id,
     warnings,
     world_paths,
 )
 
 GRANULARITY = 2
-
-
-def select_maps(all_maps, query):
-    """Find the maps that the user asked for. Maps have no slug, so this takes the
-    uuid or the title."""
-    wanted = query.strip().lower()
-    by_id = [m for m in all_maps if (m.get("id") or "").lower() == wanted]
-    if by_id:
-        return by_id
-    by_title = [m for m in all_maps if (m.get("title") or "").strip().lower() == wanted]
-    if by_title:
-        return by_title
-    return [m for m in all_maps if wanted in (m.get("title") or "").lower()]
 
 
 parser = argparse.ArgumentParser(description="Backup all maps of a world, with layers, marker groups and markers.")
@@ -100,17 +88,7 @@ with requests.Session() as session:
         written += 1
 
     if args.map:
-        selected = select_maps(all_maps, args.map)
-        if not selected:
-            print(f"No map matches '{args.map}'. Use the map uuid or a part of its title.")
-            raise SystemExit(1)
-        if len(selected) > 1:
-            print(f"'{args.map}' matches {len(selected)} maps, please be more precise:")
-            for entry in selected:
-                print(f"  {entry.get('title')}  ({entry.get('id')})")
-            raise SystemExit(1)
-        all_maps = selected
-        print(f"Backing up 1 map: {selected[0].get('title')}")
+        all_maps = select_one_or_exit(all_maps, args.map, "map")
 
     map_names = {}
     remaining = len(all_maps)
