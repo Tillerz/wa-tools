@@ -19,7 +19,7 @@ the rate limit.
 | `test-notebooks.sh` | smoke test for `backup-notebooks.py`, including the world filter, two notes with the same title and a 403 |
 | `fixtures-timelines.json` | the timelines the timeline test uses: 2 timelines, 3 histories |
 | `test-timelines.sh` | smoke test for `backup-timelines.py`, with 60 more generated histories to force paging, two events with the same title and a 403 |
-| `fixtures-misc.json` | the data the misc test uses: 1 canvas, 3 secrets, 3 variable collections with variables |
+| `fixtures-misc.json` | the data the misc test uses: 1 canvas, 3 secrets, 3 variable collections with variables, 3 block folders with blocks (integer ids) |
 | `test-misc.sh` | smoke test for `backup-misc.py`, including same-title secrets, an empty collection, a 403 and `--type` |
 | `test-common.sh` | tests of shared code in `wa_common.py` that need no fake server (for example: the version comparison) |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |

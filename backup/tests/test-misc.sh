@@ -7,13 +7,15 @@ cd "$(dirname "$0")/.."
 OUT=tests/out
 PORT=8099
 VC2=cccccccc-0000-0000-0000-000000000002
+LOCKED_FOLDER=22631
 BASE="$OUT/testworld"
 
 rm -rf "$OUT" cookies-settings-test.json
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-misc.json \
     --short-pages \
-    --forbid "variablecollection/variables:$VC2" &
+    --forbid "variablecollection/variables:$VC2" \
+    --forbid "blockfolder/blocks:$LOCKED_FOLDER" &
 MOCK_PID=$!
 trap 'kill $MOCK_PID 2>/dev/null' EXIT
 sleep 1
@@ -54,6 +56,17 @@ check "empty collection: empty list saved" 1 "$(count "$BASE/variables" 'Subscri
 check "403 was reported" 1 "$(echo "$run1" | grep -c 'containers_cccccccc_variables list failed')"
 check "failed list not saved as empty" 0 "$(count "$BASE/variables" 'containers_cccccccc_variables_*.json')"
 
+# block folders and blocks: the ids are integers
+check "block folder list saved" 1 "$(count "$BASE/blocks" 'all_blockfolders_*.json')"
+check "3 block folders saved" 3 "$(find "$BASE/blocks" -maxdepth 1 -type f ! -name 'all_*' ! -name '*_blocks_*' | wc -l)"
+check "block list of folder saved" 1 "$(count "$BASE/blocks" 'Characters_22629_blocks_*.json')"
+check "2 blocks saved" 2 "$(find "$BASE/blocks/Characters_22629_blocks" -type f | wc -l)"
+check "same-title blocks kept apart" 2 "$(count "$BASE/blocks/Characters_22629_blocks" 'Druid_*.json')"
+check "block keeps its data (from the single read)" 1 "$(grep -l 'hp.*40' "$BASE"/blocks/Characters_22629_blocks/* | wc -l)"
+check "empty folder: empty list saved" 1 "$(count "$BASE/blocks" 'Items_22632_blocks_*.json')"
+check "403 for the blocks was reported" 1 "$(echo "$run1" | grep -c 'Locked_22631_blocks list failed')"
+check "failed block list not saved as empty" 0 "$(count "$BASE/blocks" 'Locked_22631_blocks_*.json')"
+
 echo "--- run 2 (nothing changed, so nothing may be written) --------"
 run2=$(python3 backup-misc.py --settings tests/settings-test.cfg)
 check "files written on run 2" "Wrote 0 files" "$(echo "$run2" | grep -o 'Wrote 0 files')"
@@ -62,7 +75,7 @@ echo "--- run 3 (one type only) -------------------------------------"
 rm -rf "$OUT"
 run3=$(python3 backup-misc.py --settings tests/settings-test.cfg --type secrets)
 check "secrets saved" 1 "$(count "$BASE/secrets" 'all_secrets_*.json')"
-check "other types skipped" 0 "$(ls -d "$BASE"/canvases "$BASE"/variables 2>/dev/null | wc -l)"
+check "other types skipped" 0 "$(ls -d "$BASE"/canvases "$BASE"/variables "$BASE"/blocks 2>/dev/null | wc -l)"
 
 echo "---------------------------------------------------------------"
 if [ "$fail" = 0 ]; then echo "ALL TESTS PASSED"; else echo "TESTS FAILED"; fi

@@ -96,6 +96,7 @@ def world_paths(world_name, root_folder=None):
         "canvases": root / "canvases",
         "secrets": root / "secrets",
         "variables": root / "variables",
+        "blocks": root / "blocks",
         "histories": root / "histories",
     }
 
@@ -173,7 +174,7 @@ def patch_article(session, api_url, article_id, payload, request_headers, timeou
 
 
 def fetch_entity(session, api_url, path, entity_id, request_headers, granularity=2):
-    endpoint = api_url + path + "?id=" + entity_id + "&granularity=" + str(granularity)
+    endpoint = api_url + path + "?id=" + str(entity_id) + "&granularity=" + str(granularity)
     response = session.get(endpoint, headers=request_headers)
     response.raise_for_status()
     return response.json()
@@ -189,7 +190,7 @@ def fetch_entity_list_page(
     limit=50,
     offset=0,
 ):
-    endpoint = api_url + path + "?id=" + entity_id + "&granularity=" + str(granularity)
+    endpoint = api_url + path + "?id=" + str(entity_id) + "&granularity=" + str(granularity)
     payload = {"limit": limit, "offset": offset}
     response = session.post(endpoint, json=payload, headers=request_headers)
     response.raise_for_status()
@@ -249,7 +250,7 @@ def entity_basename(data, used):
             base = sanitize_filename_component(value.strip())
             if base != "":
                 break
-    entity_id = data.get("id") or ""
+    entity_id = str(data.get("id") or "")  # block and block folder ids are integers
     if base == "":
         base = sanitize_filename_component(entity_id) or "unnamed"
     if used.get(base, entity_id) != entity_id:
@@ -359,7 +360,7 @@ def safe_fetch(label, default, action):
 
 
 def sort_by_id(entities):
-    return sorted(entities, key=lambda e: e.get("id") or "")
+    return sorted(entities, key=lambda e: str(e.get("id") or ""))
 
 
 def stable_basename(data, used):
@@ -370,7 +371,7 @@ def stable_basename(data, used):
     between runs. If two entities of one list still end up with the same name (the
     same title and the same first 8 characters of the id), the second one gets its
     full id, so two entities can never share a file."""
-    entity_id = data.get("id") or ""
+    entity_id = str(data.get("id") or "")  # block and block folder ids are integers
     base = ""
     for key in ("slug", "title", "name"):
         value = data.get(key)
@@ -472,7 +473,7 @@ def select_entities(entities, query):
     wanted = query.strip().lower()
 
     def field(entity, key):
-        return (entity.get(key) or "").strip().lower()
+        return str(entity.get(key) or "").strip().lower()
 
     by_id = [e for e in entities if field(e, "id") == wanted]
     if by_id:

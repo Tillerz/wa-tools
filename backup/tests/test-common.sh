@@ -48,6 +48,15 @@ check("other nested updateDate stays", {"a": {"updateDate": 1}},
       without_volatile({"a": {"updateDate": 1}}))
 check("lists are walked", [{"world": {"id": "w"}}],
       without_volatile([{"world": {"id": "w", "updateDate": 5}}]))
+
+# block and block folder ids are integers, not uuids
+from wa_common import entity_basename, select_entities, sort_by_id, stable_basename
+check("integer id: stable name", "Wildshape_1285074", stable_basename({"id": 1285074, "title": "Wildshape"}, {}))
+check("integer id: entity_basename", "Wildshape", entity_basename({"id": 1285074, "title": "Wildshape"}, {}))
+check("integer id: sort order does not depend on the input order", sort_by_id([{"id": 2}, {"id": 10}]),
+      sort_by_id([{"id": 10}, {"id": 2}]))
+check("integer id: select by id", [{"id": 22629, "title": "Characters"}],
+      select_entities([{"id": 22629, "title": "Characters"}, {"id": 22630, "title": "Items"}], "22629"))
 sys.exit(1 if failed else 0)
 PY
 status=$?

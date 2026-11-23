@@ -36,6 +36,7 @@ CHILD_LISTS = {
     "notebook/notesections": "notebook_sections",
     "notesection/notes": "section_notes",
     "variablecollection/variables": "collection_variables",
+    "blockfolder/blocks": "folder_blocks",
 }
 # List endpoints of the world, and the single reads of the same entities:
 # path -> fixture key. The fixture holds a plain list under that key.
@@ -43,11 +44,13 @@ WORLD_LISTS = {
     "world/canvases": "canvases",
     "world/secrets": "secrets",
     "world/variablecollections": "variablecollections",
+    "world/blockfolders": "blockfolders",
 }
 WORLD_READS = {
     "canvas": "canvases",
     "secret": "secrets",
     "variablecollection": "variablecollections",
+    "blockfolder": "blockfolders",
 }
 LIST_KEYS = ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories",
              *WORLD_LISTS.values())
@@ -63,6 +66,7 @@ CHILD_READS = {
     "notesection": "notebook_sections",
     "note": "section_notes",
     "variable": "collection_variables",
+    "block": "folder_blocks",
 }
 USER_ID = "uuuuuuuu-0000-0000-0000-000000000001"
 
@@ -102,7 +106,7 @@ def add_bulk_histories(data, count):
 def find_entity(groups_of_lists, entity_id):
     for entries in groups_of_lists:
         for entry in entries:
-            if entry.get("id") == entity_id:
+            if str(entry.get("id")) == entity_id:  # block and block folder ids are integers
                 return entry
     return None
 

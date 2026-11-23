@@ -29,13 +29,22 @@ SIMPLE_TYPES = {
     "canvases": ("world/canvases", "canvas"),
     "secrets": ("world/secrets", "secret"),
 }
-# Variable collections have variables below them, so they have their own code.
-# The spec writes the paths with an underscore (variable_collection). The real API has
+# The types with children: a list of parents for the world, one read per parent, then for
+# every parent a list of its children and one read per child.
+# name -> (parent list path, parent read path, child list path, child read path,
+#          name of the parent list in the file names, name of the children in the file names)
+# The spec writes the variable paths with an underscore (variable_collection). The real API has
 # none: /variablecollection answers, /variable_collection answers 404 (checked 2026-11-23).
-ALL_TYPES = list(SIMPLE_TYPES) + ["variables"]
+NESTED_TYPES = {
+    "variables": ("world/variablecollections", "variablecollection",
+                  "variablecollection/variables", "variable", "variablecollections", "variables"),
+    "blocks": ("world/blockfolders", "blockfolder",
+               "blockfolder/blocks", "block", "blockfolders", "blocks"),
+}
+ALL_TYPES = list(SIMPLE_TYPES) + list(NESTED_TYPES)
 
 
-parser = argparse.ArgumentParser(description="Backup canvases, secrets, and variable collections with their variables.")
+parser = argparse.ArgumentParser(description="Backup canvases, secrets, variable collections with their variables, and block folders with their blocks.")
 parser.add_argument("--type", choices=ALL_TYPES, action="append", metavar="TYPE",
                     help=f"back up this type only; can be given several times (default: all of {', '.join(ALL_TYPES)})")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
@@ -79,13 +88,13 @@ with requests.Session() as session:
                                 f"all_{type_name}", children_folder=folder)
             continue
 
-        # variable collections, and the variables of each collection
-        collections = run.backup_children("variable collections", "world/variablecollections",
-                                          "variablecollection", world_id, folder,
-                                          "all_variablecollections", children_folder=folder)
-        for collection, base in collections:
-            run.backup_children("variable collections", "variablecollection/variables", "variable",
-                                collection["id"], folder, base + "_variables")
+        # the parents (variable collections, block folders), and the children of each parent
+        parent_list, parent_read, child_list, child_read, parent_name, child_name = NESTED_TYPES[type_name]
+        parents = run.backup_children(parent_name, parent_list, parent_read, world_id, folder,
+                                      f"all_{parent_name}", children_folder=folder)
+        for parent, base in parents:
+            run.backup_children(parent_name, child_list, child_read, parent["id"], folder,
+                                f"{base}_{child_name}")
 
     run.print_summary("types")
 

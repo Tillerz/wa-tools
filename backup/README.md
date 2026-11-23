@@ -12,9 +12,9 @@ Run them one by one, there is no script that runs them all.
 | `backup-manuscripts.py` | manuscripts, versions, parts, beats, stats, plots, labels, tags | `<world>/manuscripts/` | [section 3](#3-full-manuscript-backup) |
 | `backup-notebooks.py` | notebooks, sections, notes | `<world>/notebooks/` | [section 4](#4-full-notebook-backup) |
 | `backup-timelines.py` | timelines, histories (events) | `<world>/timelines/`, `<world>/histories/` | [section 5](#5-full-timeline-backup) |
-| `backup-misc.py` | canvases, secrets, variable collections, variables | `<world>/canvases/`, `<world>/secrets/`, `<world>/variables/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
+| `backup-misc.py` | canvases, secrets, variable collections, variables, block folders, blocks | `<world>/canvases/`, `<world>/secrets/`, `<world>/variables/`, `<world>/blocks/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
 
-Not backed up yet: images, block folders and blocks, block templates, categories, subscriber groups, RPG systems.
+Not backed up yet: images, block templates, categories, subscriber groups, RPG systems.
 Not backed up because WA does not allow it: manuscript bookmarks (WA answers with an error).
 Not backed up on purpose: chronicles (metadata only).
 
@@ -79,6 +79,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Canvas backups | `~/data/alana/canvases/` |
 | Secret backups | `~/data/alana/secrets/` |
 | Variable backups | `~/data/alana/variables/` |
+| Block backups | `~/data/alana/blocks/` |
 
 
 # Scripts
@@ -367,7 +368,7 @@ Notes:
 - requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
 
 
-## 6) Misc Backup: Canvases, Secrets, Variables
+## 6) Misc Backup: Canvases, Secrets, Variables, Blocks
 
 Script:
 
@@ -377,6 +378,7 @@ Script:
 Purpose:
 
 - one script for the smaller data types that follow one pattern: a list call for the world, then one read call for every entry
+  (and for some types: a list of children below every entry, then one read call for every child)
 - fetches them via WA API, with granularity 2
 
 What is bundled in this script:
@@ -386,10 +388,11 @@ What is bundled in this script:
 | `canvases` | canvases (whiteboards) | `POST /world/canvases`, then `GET /canvas` for each | `<world_name>/canvases/` | 1 + number of canvases |
 | `secrets` | secrets | `POST /world/secrets`, then `GET /secret` for each | `<world_name>/secrets/` | 1 + number of secrets |
 | `variables` | variable collections, and the variables in each collection | `POST /world/variablecollections`, `GET /variablecollection` for each, then `POST /variablecollection/variables` and `GET /variable` for each variable | `<world_name>/variables/` | 1 + collections x 2 + variables |
+| `blocks` | block folders, and the blocks in each folder | `POST /world/blockfolders`, `GET /blockfolder` for each, then `POST /blockfolder/blocks` and `GET /block` for each block | `<world_name>/blocks/` | 1 + folders x 2 + blocks |
 
-- `canvases` and `secrets` are driven by a small table (`SIMPLE_TYPES` in the script). `variables` has its own code, because
-  the variables are one level below the collections.
-- another type of the same pattern needs one line in that table and a folder in `world_paths()` in `wa_common.py`.
+- `canvases` and `secrets` are driven by a small table (`SIMPLE_TYPES` in the script). `variables` and `blocks` are driven by a
+  second table (`NESTED_TYPES`), because their entries are one level below a parent (collection, block folder).
+- another type of one of these patterns needs one line in the table and a folder in `world_paths()` in `wa_common.py`.
 - the calls are sent one after the other, so the number of calls is the run time: with the default limit of 5 calls
   per 5 seconds, about 1 second per call.
 
@@ -401,7 +404,7 @@ usage: backup-misc.py [-h] [--type TYPE] [--settings FILE]
 
 Parameters:
 
-- `--type <canvases|secrets|variables>` back up this type only. Can be given several times. Default: all three
+- `--type <canvases|secrets|variables|blocks>` back up this type only. Can be given several times. Default: all four
   (see the table above).
 - `--settings <file>` use another settings file, for a second world or for the
   test setup. Each settings file gets its own cookie file.
@@ -428,11 +431,19 @@ Folder layout:
 | `variables/<collection>_<date>.json` | one variable collection |
 | `variables/<collection>_variables_<date>.json` | list of the variables of the collection |
 | `variables/<collection>_variables/<variable>_<date>.json` | one variable, with its key `k` and value `v` |
+| `blocks/all_blockfolders_<date>.json` | list of all block folders |
+| `blocks/<folder>_<date>.json` | one block folder |
+| `blocks/<folder>_blocks_<date>.json` | list of the blocks of the folder |
+| `blocks/<folder>_blocks/<block>_<date>.json` | one block, with its data (`jsondata`) |
 
 Notes:
 
 - files are named `<title>_<first 8 characters of the id>`, because titles are not unique. Many variables have
   no title; those are named by the first 8 characters of the id. The key and the value are inside the file.
+- block and block folder ids are integers, not uuids (as the spec says). The file names use them as they are,
+  for example `Characters_22629`.
+- the API has no call that lists all blocks of a world. Blocks are listed per block folder, so a block that is in no
+  block folder would be missed (there is none in the test world).
 - all list calls return only short entries, so every entry is read with its own call. Your world has 95 variables, so
   a full run takes about 2 minutes.
 - `<date>` is the entity's last update date if the API returns one, otherwise the start
@@ -771,6 +782,7 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **New: block folders and blocks** in `backup-misc.py` (`--type blocks`). The shared code now accepts integer ids.
 - **New: `backup-misc.py`** for canvases, secrets, variable collections and variables.
 - **New: `backup-timelines.py`** for timelines and histories (events).
 - **New: `backup-notebooks.py`** for notebooks, sections and notes. It uses `POST /user/notebooks`, because

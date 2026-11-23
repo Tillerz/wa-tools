@@ -103,5 +103,64 @@
       }
     ],
     "cccccccc-0000-0000-0000-000000000003": []
+  },
+  "blockfolders": [
+    {
+      "id": 22629,
+      "title": "Characters",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockFolder",
+      "updateDate": null
+    },
+    {
+      "id": 22631,
+      "title": "Locked",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockFolder",
+      "updateDate": null
+    },
+    {
+      "id": 22632,
+      "title": "Items",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockFolder",
+      "updateDate": null
+    }
+  ],
+  "folder_blocks": {
+    "22629": [
+      {
+        "id": 1285074,
+        "title": "Druid",
+        "slug": null,
+        "state": null,
+        "entityClass": "Block",
+        "updateDate": null,
+        "jsondata": "{\"hp\": 12}"
+      },
+      {
+        "id": 1285075,
+        "title": "Druid",
+        "slug": null,
+        "state": null,
+        "entityClass": "Block",
+        "updateDate": null,
+        "jsondata": "{\"hp\": 40}"
+      }
+    ],
+    "22631": [
+      {
+        "id": 1285076,
+        "title": "Hidden",
+        "slug": null,
+        "state": null,
+        "entityClass": "Block",
+        "updateDate": null
+      }
+    ],
+    "22632": []
   }
 }
