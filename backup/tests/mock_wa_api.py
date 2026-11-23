@@ -45,12 +45,14 @@ WORLD_LISTS = {
     "world/secrets": "secrets",
     "world/variablecollections": "variablecollections",
     "world/blockfolders": "blockfolders",
+    "user/blocktemplates": "blocktemplates",
 }
 WORLD_READS = {
     "canvas": "canvases",
     "secret": "secrets",
     "variablecollection": "variablecollections",
     "blockfolder": "blockfolders",
+    "blocktemplate": "blocktemplates",
 }
 LIST_KEYS = ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories",
              *WORLD_LISTS.values())

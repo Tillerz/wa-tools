@@ -162,5 +162,62 @@
       }
     ],
     "22632": []
-  }
+  },
+  "blocktemplates": [
+    {
+      "id": 2652,
+      "title": "",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockTemplate",
+      "updateDate": null,
+      "formSchema": "{\"system\":\"dnd5e\"}",
+      "parts": [
+        {
+          "id": 63609,
+          "title": "Class",
+          "slug": null,
+          "state": null,
+          "entityClass": "BlockTemplatePart",
+          "updateDate": null
+        },
+        {
+          "id": 63610,
+          "title": "Level",
+          "slug": null,
+          "state": null,
+          "entityClass": "BlockTemplatePart",
+          "updateDate": null
+        }
+      ]
+    },
+    {
+      "id": 2653,
+      "title": "Adversary",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockTemplate",
+      "updateDate": null,
+      "formSchema": "{\"system\":\"a\"}",
+      "parts": []
+    },
+    {
+      "id": 2654,
+      "title": "Adversary",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockTemplate",
+      "updateDate": null,
+      "formSchema": "{\"system\":\"b\"}",
+      "parts": []
+    },
+    {
+      "id": 2655,
+      "title": "Locked",
+      "slug": null,
+      "state": null,
+      "entityClass": "BlockTemplate",
+      "updateDate": null
+    }
+  ]
 }

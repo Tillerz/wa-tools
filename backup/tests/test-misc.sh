@@ -8,6 +8,7 @@ OUT=tests/out
 PORT=8099
 VC2=cccccccc-0000-0000-0000-000000000002
 LOCKED_FOLDER=22631
+LOCKED_TEMPLATE=2655
 BASE="$OUT/testworld"
 
 rm -rf "$OUT" cookies-settings-test.json
@@ -15,7 +16,8 @@ python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-misc.json \
     --short-pages \
     --forbid "variablecollection/variables:$VC2" \
-    --forbid "blockfolder/blocks:$LOCKED_FOLDER" &
+    --forbid "blockfolder/blocks:$LOCKED_FOLDER" \
+    --forbid "blocktemplate:$LOCKED_TEMPLATE" &
 MOCK_PID=$!
 trap 'kill $MOCK_PID 2>/dev/null' EXIT
 sleep 1
@@ -67,6 +69,15 @@ check "empty folder: empty list saved" 1 "$(count "$BASE/blocks" 'Items_22632_bl
 check "403 for the blocks was reported" 1 "$(echo "$run1" | grep -c 'Locked_22631_blocks list failed')"
 check "failed block list not saved as empty" 0 "$(count "$BASE/blocks" 'Locked_22631_blocks_*.json')"
 
+# block templates belong to the user (the user id comes from GET /identity), the ids are integers
+check "template list saved" 1 "$(count "$BASE/blocktemplates" 'all_blocktemplates_*.json')"
+check "3 templates saved" 3 "$(find "$BASE/blocktemplates" -maxdepth 1 -type f ! -name 'all_*' | wc -l)"
+check "same-title templates kept apart" 2 "$(count "$BASE/blocktemplates" 'Adversary_*.json')"
+check "template without title is named by its id" 1 "$(count "$BASE/blocktemplates" '2652_*.json')"
+check "template keeps its parts" 1 "$(grep -l 'Level' "$BASE"/blocktemplates/2652_* | wc -l)"
+check "403 for a template was reported" 1 "$(echo "$run1" | grep -c 'blocktemplates Locked_2655 failed')"
+check "failed template not saved" 0 "$(count "$BASE/blocktemplates" 'Locked_*.json')"
+
 echo "--- run 2 (nothing changed, so nothing may be written) --------"
 run2=$(python3 backup-misc.py --settings tests/settings-test.cfg)
 check "files written on run 2" "Wrote 0 files" "$(echo "$run2" | grep -o 'Wrote 0 files')"
@@ -75,7 +86,7 @@ echo "--- run 3 (one type only) -------------------------------------"
 rm -rf "$OUT"
 run3=$(python3 backup-misc.py --settings tests/settings-test.cfg --type secrets)
 check "secrets saved" 1 "$(count "$BASE/secrets" 'all_secrets_*.json')"
-check "other types skipped" 0 "$(ls -d "$BASE"/canvases "$BASE"/variables "$BASE"/blocks 2>/dev/null | wc -l)"
+check "other types skipped" 0 "$(ls -d "$BASE"/canvases "$BASE"/variables "$BASE"/blocks "$BASE"/blocktemplates 2>/dev/null | wc -l)"
 
 echo "---------------------------------------------------------------"
 if [ "$fail" = 0 ]; then echo "ALL TESTS PASSED"; else echo "TESTS FAILED"; fi

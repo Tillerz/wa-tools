@@ -97,6 +97,7 @@ def world_paths(world_name, root_folder=None):
         "secrets": root / "secrets",
         "variables": root / "variables",
         "blocks": root / "blocks",
+        "blocktemplates": root / "blocktemplates",
         "histories": root / "histories",
     }
 
@@ -406,6 +407,17 @@ class BackupRun:
     def save(self, folder, base, data, stamp):
         if save_versioned(folder, base, data, stamp):
             self.written += 1
+
+    def user_id(self):
+        """The id of the user that owns the API key (GET /identity). Some lists belong to the user,
+        not to a world. Raises a requests exception if the call fails."""
+        self.limiter.wait()
+        response = self.session.get(self.api_url + "identity", headers=self.request_headers)
+        response.raise_for_status()
+        user_id = response.json().get("id")
+        if not user_id:
+            raise requests.RequestException("the API did not return a user id")
+        return user_id
 
     def read(self, label, path, entity_id):
         """GET one entity. On an API error: warn, return None."""

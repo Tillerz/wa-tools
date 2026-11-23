@@ -69,15 +69,8 @@ with requests.Session() as session:
 
     # 1) list all notebooks of the user. The list call needs the user id.
     try:
-        run.limiter.wait()
-        response = session.get(api_url + "identity", headers=request_headers)
-        response.raise_for_status()
-        user_id = response.json().get("id")
-        if not user_id:
-            print("Error: the API did not return a user id.")
-            raise SystemExit(1)
         all_notebooks = fetch_all_pages(run.limiter, session, api_url, LIST_PATH,
-                                        user_id, request_headers, GRANULARITY)
+                                        run.user_id(), request_headers, GRANULARITY)
     except requests.RequestException as e:
         print(f"Error fetching notebook list: {e}")
         raise SystemExit(1)

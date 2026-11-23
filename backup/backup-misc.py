@@ -16,18 +16,22 @@ from wa_common import (
     load_cfg_or_exit,
     load_cookies,
     rate_limiter_from_cfg,
+    safe_fetch,
     save_cookies,
     world_paths,
 )
 
 GRANULARITY = 2
 
-# The types that follow one pattern: a list call for the world, then one read call for
-# every entry (the list entries are thin). name -> (list path, read path).
+# The types that follow one pattern: a list call, then one read call for every entry (the
+# list entries are thin). name -> (list path, read path, what the list belongs to).
+# The list belongs to the "world" (the world id is sent) or to the "user" (the user id is sent,
+# read with GET /identity; the entries then are not tied to a world).
 # To back up another type of that pattern, add a line here and a folder in world_paths().
 SIMPLE_TYPES = {
-    "canvases": ("world/canvases", "canvas"),
-    "secrets": ("world/secrets", "secret"),
+    "canvases": ("world/canvases", "canvas", "world"),
+    "secrets": ("world/secrets", "secret", "world"),
+    "blocktemplates": ("user/blocktemplates", "blocktemplate", "user"),
 }
 # The types with children: a list of parents for the world, one read per parent, then for
 # every parent a list of its children and one read per child.
@@ -44,7 +48,7 @@ NESTED_TYPES = {
 ALL_TYPES = list(SIMPLE_TYPES) + list(NESTED_TYPES)
 
 
-parser = argparse.ArgumentParser(description="Backup canvases, secrets, variable collections with their variables, and block folders with their blocks.")
+parser = argparse.ArgumentParser(description="Backup canvases, secrets, block templates, variable collections with their variables, and block folders with their blocks.")
 parser.add_argument("--type", choices=ALL_TYPES, action="append", metavar="TYPE",
                     help=f"back up this type only; can be given several times (default: all of {', '.join(ALL_TYPES)})")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
@@ -82,9 +86,12 @@ with requests.Session() as session:
         print(f"--- {type_name.upper()}")
 
         if type_name in SIMPLE_TYPES:
-            list_path, read_path = SIMPLE_TYPES[type_name]
+            list_path, read_path, belongs_to = SIMPLE_TYPES[type_name]
+            owner_id = world_id if belongs_to == "world" else safe_fetch("user id", None, run.user_id)
+            if owner_id is None:
+                continue
             # list in <type>/all_<type>_<date>.json, entries in <type>/<name>_<date>.json
-            run.backup_children(type_name, list_path, read_path, world_id, folder,
+            run.backup_children(type_name, list_path, read_path, owner_id, folder,
                                 f"all_{type_name}", children_folder=folder)
             continue
 
