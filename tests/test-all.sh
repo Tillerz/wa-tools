@@ -81,6 +81,16 @@ check "--images 2: the step is in the summary" 1 "$(summary_line "$run5" images 
 run6=$($ALL --only images --images all 2>&1)
 check "--images all: all three images" 3 "$(find "$BASE/images" -maxdepth 1 -type f ! -name 'images_first_*' ! -name 'all_images_*' | wc -l)"
 
+echo "--- --full is passed on ----------------------------------------"
+run8=$($ALL --only misc,images --images all 2>&1)
+check "no --full: the images and the categories are not read again" 1 "$(echo "$run8" | sed -n '/=== Summary/,$p' | grep -E '^  images ' | grep -c '0 detail requests')"
+run9=$($ALL --only misc,images --images all --full 2>&1)
+check "--full: images are read again (3)" 1 "$(echo "$run9" | sed -n '/=== Summary/,$p' | grep -E '^  images ' | grep -c '3 detail requests')"
+run10=$($ALL --only maps 2>&1)
+check "no --full: the maps read no marker again that has a date" 1 "$(echo "$run10" | sed -n '/=== Summary/,$p' | grep -E '^  maps ' | grep -c ' 0 marker detail requests')"
+run11=$($ALL --only maps --full 2>&1)
+check "--full: for the maps it is --force: the markers are read again (5)" 1 "$(echo "$run11" | sed -n '/=== Summary/,$p' | grep -E '^  maps ' | grep -c ' 5 marker detail requests')"
+
 echo "--- a step that fails ------------------------------------------"
 run7=$(python3 backup-all.py --settings tests/does-not-exist.cfg --only world,maps 2>&1); code=$?
 check "exit code: failed" 1 "$code"

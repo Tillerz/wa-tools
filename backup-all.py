@@ -128,6 +128,9 @@ parser.add_argument("--skip", type=names_list, metavar="STEPS", help="do not run
 parser.add_argument("--images", type=images_option, metavar="N|all",
                     help="also back up the image metadata: the first N images, or all. A world can have thousands of images, "
                          "and an image is one call, so 'all' can take hours")
+parser.add_argument("--full", action="store_true",
+                    help="read everything again: entries that the list says did not change are not skipped (images, categories, secrets), "
+                         "and the markers of the maps are read again (--force)")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
                     help="settings file to use, passed to every script (default: settings.cfg)")
 args = parser.parse_args()
@@ -150,6 +153,10 @@ try:
     for number, name in enumerate(selected, 1):
         print(f"\n=== [{number}/{len(selected)}] {name} " + "=" * 50, flush=True)
         extra = ["--settings", args.settings]
+        if args.full and name in ("images", "misc"):
+            extra.append("--full")
+        if args.full and name == "maps":
+            extra.append("--force")
         if name == "images":
             extra += ["--all"] if args.images == "all" else ["--max", str(args.images)]
         done.append(run_step(name, scripts[name], extra))

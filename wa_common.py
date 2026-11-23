@@ -461,7 +461,8 @@ class BackupRun:
             self.request_headers, self.granularity, max_items))
 
     def backup_children(self, label, list_path, read_path, parent_id, folder, list_name,
-                        skip_if_empty=False, children_folder=None, max_items=None, pick=None, on_read=None):
+                        skip_if_empty=False, children_folder=None, max_items=None, pick=None, on_read=None,
+                        skip_unchanged=False):
         """Save the list of the children of one entity, and every child itself.
 
         The list entries are thin: a part or a note in a list has little or no content,
@@ -473,6 +474,10 @@ class BackupRun:
         With pick, a function that gets the list and returns the entries to read: the list file still
         has all entries, but only the picked ones are read. With on_read, a function that is called
         with (list entry, file base name, the data that was read) after every successful read.
+        With skip_unchanged, an entry is not read again when the list gives it an updateDate and a file
+        <name>_<that date>.json is saved already. Use it only for types whose list entries have an
+        updateDate that is the same as the one of the single read (checked for images, categories, secrets).
+        An entity that changes without a new updateDate is not noticed then; a run without it finds it.
         With skip_if_empty, an empty list that was never saved before is not written
         and not printed (used for the beats: most parts have none).
         Returns [(list entry, file base name)], for the caller to go on with."""
@@ -485,10 +490,18 @@ class BackupRun:
         result = []
         used = {}
         names = {entry["id"]: stable_basename(entry, used) for entry in sort_by_id(entries) if entry.get("id")}
+        target_folder = children_folder or folder / list_name
+        skipped = 0
         for entry in sort_by_id(pick(entries) if pick else entries):
             if not entry.get("id"):
                 continue
             base = names[entry["id"]]
+            if skip_unchanged:
+                stamp = entity_timestamp(entry, "")
+                if stamp and (target_folder / f"{base}_{stamp}.json").is_file():
+                    skipped += 1
+                    result.append((entry, base))
+                    continue
             data = self.read(f"{label}: {list_name} {base}", read_path, entry["id"])
             if data is not None:
                 self.save(children_folder or folder / list_name, base, data,
@@ -496,6 +509,8 @@ class BackupRun:
                 if on_read:
                     on_read(entry, base, data)
             result.append((entry, base))
+        if skipped:
+            print(f"      {skipped} of {len(entries)} not read again: the date in the list is the one of the saved file")
         return result
 
     def print_summary(self, incomplete):

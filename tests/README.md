@@ -24,7 +24,7 @@ the rate limit.
 | `test-misc.sh` | smoke test for `backup-misc.py`, including same-title secrets, an empty collection, a 403 and `--type` |
 | `test-common.sh` | tests of shared code in `wa_common.py` that need no fake server (for example: the version comparison) |
 | `fixtures-images.json` | the images the image test uses: 3 images (integer ids) |
-| `test-images.sh` | smoke test for `backup-images.py`, with 60 more generated images: no amount given, `--max`, `--all`, paging |
+| `test-images.sh` | smoke test for `backup-images.py`, with 60 more generated images: no amount given, `--max`, `--all`, paging, unchanged images are not read again, `--full`, one missing file is read again |
 | `fixtures-world.json` | the world the world test uses, with CSS that has Windows line endings |
 | `test-world.sh` | smoke test for `backup-world.py`: the files in `latest/`, line endings, nothing rewritten, a changed file is restored |
 | `test-prepare.sh` | test of `prepare.py` (no fake server): it must use `root_folder` and write nothing next to the script |

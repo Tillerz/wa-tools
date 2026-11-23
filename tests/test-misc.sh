@@ -127,6 +127,19 @@ echo "--- run 7 (--template together with another --type is an error) --"
 python3 backup-misc.py --settings tests/settings-test.cfg --template 2652 --type secrets >/dev/null 2>&1
 check "exit code of the wrong combination" 2 "$?"
 
+echo "--- run 8 (categories and secrets: not read again when the date in the list is the same) --"
+rm -rf "$OUT"
+python3 backup-misc.py --settings tests/settings-test.cfg --type categories --type secrets >/dev/null
+run8=$(python3 backup-misc.py --settings tests/settings-test.cfg --type categories --type secrets)
+echo "$run8" | grep -E "unchanged|Wrote"
+check "categories (all 3 have a date) and the secret with a date are not read again; 2 secrets without a date are" "Wrote 0 files, 2 detail requests." "$(echo "$run8" | grep -o 'Wrote 0 files, [0-9]* detail requests.')"
+run9=$(python3 backup-misc.py --settings tests/settings-test.cfg --type categories --type secrets --full)
+check "--full: all 3 categories and all 3 secrets are read" "Wrote 0 files, 6 detail requests." "$(echo "$run9" | grep -o 'Wrote 0 files, [0-9]* detail requests.')"
+run10a=$(python3 backup-misc.py --settings tests/settings-test.cfg --type subscribergroups | grep -o '[0-9]* detail requests')
+run10b=$(python3 backup-misc.py --settings tests/settings-test.cfg --type subscribergroups | grep -o '[0-9]* detail requests')
+check "a type without dates in the list is read on every run" "$run10a" "$run10b"
+check "... and it did read something" 1 "$([ "${run10a%% *}" -gt 0 ] && echo 1 || echo 0)"
+
 echo "---------------------------------------------------------------"
 if [ "$fail" = 0 ]; then echo "ALL TESTS PASSED"; else echo "TESTS FAILED"; fi
 exit $fail

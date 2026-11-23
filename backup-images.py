@@ -24,8 +24,11 @@ GRANULARITY = 2
 # so. Every JSON file has the "url" of the file on the WA server.
 #
 # A world can have thousands of images, and every image is one read call (the list entries
-# are thin). That is hours at 5 calls per 5 seconds. So the script does nothing unless you
+# are thin). That is an hour at 5 calls per 5 seconds. So the script does nothing unless you
 # say how much you want: --max N for a try, or --all for everything.
+# The list entries have the updateDate of the image, so an image whose date is already in a
+# saved file is not read again: the second run only reads the list (about a minute). --full
+# reads everything.
 
 
 parser = argparse.ArgumentParser(description="Backup the metadata of the images of a world.")
@@ -34,6 +37,8 @@ amount.add_argument("--max", type=int, metavar="N",
                     help="back up the first N images only (try it out: --max 50)")
 amount.add_argument("--all", action="store_true",
                     help="back up all images (one list call per 50 images, and one read call per image)")
+parser.add_argument("--full", action="store_true",
+                    help="read every image again, also when the list says it did not change since the last run")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
                     help="settings file to use (default: settings.cfg)")
 args = parser.parse_args()
@@ -65,6 +70,6 @@ with requests.Session() as session:
     # the list of a limited run has its own file name, it is not the list of all images
     list_name = "all_images" if args.all else f"images_first_{args.max}"
     run.backup_children("images", "world/images", "image", world_id, images_folder,
-                        list_name, children_folder=images_folder, max_items=args.max)
+                        list_name, children_folder=images_folder, max_items=args.max, skip_unchanged=not args.full)
 
     run.print_summary("images")

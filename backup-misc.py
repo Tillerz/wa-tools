@@ -49,6 +49,10 @@ NESTED_TYPES = {
                "blockfolder/blocks", "block", "blockfolders", "blocks"),
 }
 ALL_TYPES = list(SIMPLE_TYPES) + list(NESTED_TYPES)
+# Types whose list entries have an updateDate that is the same as the one of the single read (checked on
+# all 96 categories and 10 secrets, 2026-11-23). An entry whose date is already in a saved file is not read
+# again, unless --full. The other types have no dates in the list (null) and are always read.
+SKIP_IF_UNCHANGED = {"categories", "secrets"}
 
 
 parser = argparse.ArgumentParser(description="Backup canvases, secrets, categories, subscriber groups, block templates, variable collections with their variables, and block folders with their blocks.")
@@ -60,6 +64,9 @@ parser.add_argument("--parts", action="store_true",
                          "Use it with --template.")
 parser.add_argument("--template", metavar="TEMPLATE",
                     help="block templates: read only this one, given as its id or (part of) its title. Implies --type blocktemplates.")
+parser.add_argument("--full", action="store_true",
+                    help="read every entry again, also when the list says it did not change since the last run "
+                         f"(only {', '.join(sorted(SKIP_IF_UNCHANGED))} are skipped otherwise)")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
                     help="settings file to use (default: settings.cfg)")
 args = parser.parse_args()
@@ -107,7 +114,8 @@ with requests.Session() as session:
                 if args.parts:
                     extra["on_read"] = lambda entry, base, data: templates.append((base, data.get("parts") or []))
             run.backup_children(type_name, list_path, read_path, owner_id, folder,
-                                f"all_{type_name}", children_folder=folder, **extra)
+                                f"all_{type_name}", children_folder=folder,
+                                skip_unchanged=type_name in SKIP_IF_UNCHANGED and not args.full, **extra)
             # the parts of each template: <type>/<template>_parts/<part>_<date>.json
             for template_base, parts in templates:
                 parts_folder = folder / f"{template_base}_parts"

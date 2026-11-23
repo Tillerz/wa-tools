@@ -64,6 +64,16 @@ check "image keeps its data (from the single read)" 1 "$(grep -l '"width": 1456'
 echo "--- --all again (nothing changed, so nothing may be written) ---"
 run4=$(python3 backup-images.py --settings tests/settings-test.cfg --all)
 check "files written" "Wrote 0 files" "$(echo "$run4" | grep -o 'Wrote 0 files')"
+check "no image is read again (the date in the list is the same)" "Wrote 0 files, 0 detail requests." "$(echo "$run4" | grep -o 'Wrote 0 files, [0-9]* detail requests.')"
+
+echo "--- --all --full reads every image again ----------------------"
+run5=$(python3 backup-images.py --settings tests/settings-test.cfg --all --full)
+check "--full: every image is read" "Wrote 0 files, $TOTAL detail requests." "$(echo "$run5" | grep -o 'Wrote 0 files, [0-9]* detail requests.')"
+
+echo "--- one image file is gone: only that image is read ------------"
+rm "$(ls "$BASE"/Harbour*4674529* | head -1)"
+run6=$(python3 backup-images.py --settings tests/settings-test.cfg --all)
+check "only the missing image is read and saved" "Wrote 1 files, 1 detail requests." "$(echo "$run6" | grep -o 'Wrote 1 files, [0-9]* detail requests.')"
 
 echo "---------------------------------------------------------------"
 if [ "$fail" = 0 ]; then echo "ALL TESTS PASSED"; else echo "TESTS FAILED"; fi

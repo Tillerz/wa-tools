@@ -42,14 +42,17 @@ All backup scripts have `--settings <file>`, and most have an option to back up 
 table at the end. A step that fails does not stop the others.
 
 ```bash
-usage: backup-all.py [-h] [--only STEPS] [--skip STEPS] [--images N|all] [--settings FILE]
+usage: backup-all.py [-h] [--only STEPS] [--skip STEPS] [--images N|all] [--full] [--settings FILE]
 ```
 
 - The steps, in this order: `world`, `articles`, `maps`, `manuscripts`, `notebooks`, `timelines`, `misc` (all of `backup-misc.py`), and
   `images`.
 - `--only world,articles` runs only these steps, `--skip maps` leaves a step out.
-- **`images` is not part of a normal run.** Add `--images 50` (the first 50 images) or `--images all`. Every image is one call, and the
-  scripts read every image again on every run, so `all` takes about an hour for 3,657 images.
+- **`images` is not part of a normal run.** Add `--images 50` (the first 50 images) or `--images all`. Every image is one call, so the
+  **first** run of `--images all` takes about an hour for 3,657 images. After that an image is only read again when its date in the list changed,
+  so a run takes about a minute.
+- `--full` reads everything again, also what the list says did not change: images, categories and secrets (`--full` of those scripts), and
+  the markers of the maps (`--force` of the maps backup). Use it now and then, for example once a month.
 - `--settings <file>` is passed to every script.
 - `backup-misc.py --parts` (every part of the block templates) is not run by it, it takes hours.
 - Exit code: `0` all fine, `1` at least one step failed, `3` all steps ran, but some API calls failed, so a backup is incomplete. Useful for cron.
@@ -64,9 +67,9 @@ How long a full run takes (measured on the world with 878 articles, 44 maps with
 | `manuscripts` | 1.5 min | |
 | `notebooks` | 10 s | |
 | `timelines` | 7 s | |
-| `misc` | 7.5 min | 183 block templates, 108 variables, 96 categories, ... |
-| **Total** | **about 38 min** | |
-| `images` (only with `--images all`) | about 62 min | 3,657 images, one call each |
+| `misc` | 5.5 min | 183 block templates, 108 variables, ... (categories and secrets are skipped when unchanged, they took 1.8 min before) |
+| **Total** | **about 36 min** | |
+| `images` (only with `--images all`) | 1 min, the first run 62 min | 3,657 images; later runs read only the list (74 calls) |
 
 # Requirements
 
@@ -459,7 +462,7 @@ What is bundled in this script:
 Usage:
 
 ```bash
-usage: backup-misc.py [-h] [--type TYPE] [--parts] [--template TEMPLATE] [--settings FILE]
+usage: backup-misc.py [-h] [--type TYPE] [--parts] [--template TEMPLATE] [--full] [--settings FILE]
 ```
 
 Parameters:
@@ -471,6 +474,9 @@ Parameters:
 - `--template <id or title>` block templates only: read only this one template. A part of the title is enough, as long as it matches
   only one template; if it matches several, the script lists them and stops. It implies `--type blocktemplates`. The list of all
   templates is still saved. An id is a number, for example `2652`.
+- `--full` read every entry again. Without it, **categories and secrets** are not read again when the date in the list is the one of the
+  saved file (checked on all 96 categories and 10 secrets: the date in the list is always the date of the single read). The other types
+  have no dates in their lists, so they are always read. An entity that changes without a new date is not noticed in a run without `--full`.
 - `--settings <file>` use another settings file, for a second world or for the
   test setup.
 
@@ -555,18 +561,22 @@ Purpose:
   `url` of the file on the WA server.
 - stores them in `<world_name>/images/`
 - it is a separate script, and it **does nothing without `--max` or `--all`.** A world can have thousands of images, and every
-  image is one read call (the list entries are thin). At 5 calls per 5 seconds, 1,000 images take about 17 minutes.
+  image is one read call (the list entries are thin). At 5 calls per 5 seconds, 1,000 images take about 17 minutes. That is only the first run:
+  images that did not change are not read again.
 
 Usage:
 
 ```bash
-usage: backup-images.py [-h] (--max N | --all) [--settings FILE]
+usage: backup-images.py [-h] (--max N | --all) [--full] [--settings FILE]
 ```
 
 Parameters:
 
 - `--max <N>` back up the first N images only. Use this to try it: `--max 50` makes 1 list call and 50 read calls.
-- `--all` back up all images: 1 list call per 50 images, and 1 read call per image.
+- `--all` back up all images: 1 list call per 50 images, and 1 read call per image **that is new or changed**. The list has the update date of
+  every image. An image whose date is already in a saved file is not read again. The first run reads all (about an hour for 3,657 images), the
+  next runs only the list (about a minute).
+- `--full` read every image again, also the unchanged ones (about an hour). Use it now and then.
 - `--settings <file>` use another settings file, for a second world or for the
   test setup.
 
@@ -1011,6 +1021,9 @@ What changed in these scripts, most recent first. Useful when you update your ow
   thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
 - **Fixed: markers of maps with a denied marker list were not backed up** (see the maps notes).
+- **Faster: images, categories and secrets are not read again when they did not change.** Their lists have an `updateDate` that is the one of
+  the single read (checked on 3,657 images, 96 categories, 10 secrets). A repeated `backup-images.py --all` takes 1 minute instead of 62, categories and
+  secrets 1 second instead of 105. `--full` (also in `backup-all.py`) reads everything again. Types without dates in their lists are always read.
 - **New: `backup-all.py`** runs all the backup scripts one after the other and prints a summary. See [Run all backups](#run-all-backups).
 - **New: `--parts` and `--template` for the block templates** (`backup-misc.py`). `--parts` reads every part of the templates, `--template` picks one
   template. `BackupRun.backup_children` got the options `pick` and `on_read` for it.
