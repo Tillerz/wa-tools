@@ -70,8 +70,39 @@ check("ignore: without the option the same change writes", True,
 # where the data of a world goes
 from wa_common import world_paths
 check("world_paths: without root_folder below data/ next to the scripts",
-      str(Path("wa_common.py").resolve().parent / "data" / "w" / "json"), str(world_paths("w")["json"]))
+      str(Path("wa_common.py").resolve().parent / "data" / "w" / "articles"), str(world_paths("w")["articles"]))
 check("world_paths: with root_folder", "/some/where/w/maps", str(world_paths("w", "/some/where")["maps"]))
+
+# backup folder and work folder
+from wa_common import world_paths_from_cfg
+split = world_paths("w", "/b", work_folder="/work/w.work")
+check("work_folder: edit, deploy, text-export go to the work folder", ["/work/w.work/edit", "/work/w.work/deploy", "/work/w.work/text-export"],
+      [str(split[k]) for k in ("edit", "deploy", "text-export")])
+check("work_folder: the backups stay in the backup folder, also the articles", ["/b/w", "/b/w/articles", "/b/w/maps", "/b/w/world"],
+      [str(split["root"]), str(split["articles"]), str(split["maps"]), str(split["world"])])
+check("the articles are in the folder articles (not json)", "/b/w/articles", str(world_paths("w", "/b")["articles"]))
+check("there is no json folder any more", False, "json" in world_paths("w", "/b"))
+check("backup_folder is the exact folder, no world name added", ["/exact", "/exact/maps"],
+      [str(world_paths("w", backup_folder="/exact")["root"]), str(world_paths("w", backup_folder="/exact")["maps"])])
+check("backup_folder wins over root_folder", "/exact/maps", str(world_paths("w", "/b", backup_folder="/exact")["maps"]))
+check("no work_folder: the work data is in the backup folder (as before)", "/b/w/edit", str(world_paths("w", "/b")["edit"]))
+only_work = world_paths("w", work_folder="/work/w.work")
+check("only work_folder: backups go below data/, work data to the work folder",
+      [str(Path("wa_common.py").resolve().parent / "data" / "w" / "articles"), "/work/w.work/edit"], [str(only_work["articles"]), str(only_work["edit"])])
+check("~ is expanded in both folders", [str(Path.home() / "x"), str(Path.home() / "y")],
+      [str(world_paths("w", backup_folder="~/x")["root"]), str(world_paths("w", work_folder="~/y")["edit"].parent)])
+cfg_paths = world_paths_from_cfg({"world_name": "w", "root_folder": "/b", "work_folder": "/work/w.work", "x_auth_token": "t"})
+check("world_paths_from_cfg reads the settings", ["/b/w/maps", "/work/w.work/edit"], [str(cfg_paths["maps"]), str(cfg_paths["edit"])])
+check("an empty setting counts as not set", "/b/w/edit", str(world_paths_from_cfg({"world_name": "w", "root_folder": "/b", "work_folder": "", "backup_folder": ""})["edit"]))
+
+# the settings template must match what the code reads
+from wa_common import load_cfg
+template = load_cfg("settings-template.cfg")
+check("template: has backup_folder and work_folder", [True, True], ["backup_folder" in template, "work_folder" in template])
+check("template: has no root_folder (the older setting)", False, "root_folder" in template)
+template_paths = world_paths_from_cfg(template)
+check("template: its backup_folder is used, ~ expanded", str(Path.home() / "data" / "YOUR_WORLD_NAME_HERE" / "articles"), str(template_paths["articles"]))
+check("template: an empty work_folder means the backup folder", str(Path.home() / "data" / "YOUR_WORLD_NAME_HERE" / "edit"), str(template_paths["edit"]))
 
 # block and block folder ids are integers, not uuids
 from wa_common import entity_basename, select_entities, sort_by_id, stable_basename

@@ -9,6 +9,7 @@ the rate limit.
 | File | What it is |
 |---|---|
 | `mock_wa_api.py` | the fake API server, shared by all tests |
+| `settings-test-work.cfg` | like `settings-test.cfg`, with a `work_folder`: the article test uses it for a run with a work folder |
 | `settings-test.cfg` | settings that point at the fake server, shared by all tests |
 | `fixtures-maps.json` | the world the map test uses: 3 maps, layers, marker groups, markers |
 | `test-maps.sh` | smoke test for `backup-maps.py` |

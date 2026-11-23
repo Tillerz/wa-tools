@@ -7,7 +7,7 @@ Run them one by one, there is no script that runs them all.
 
 | Script | Backs up | Saved in | Details |
 |---|---|---|---|
-| `backup-articles.py` | articles | `<world>/json/` | [section 1](#1-article-backup) |
+| `backup-articles.py` | articles | `<world>/articles/` | [section 1](#1-article-backup) |
 | `backup-maps.py` | maps, layers, marker groups, markers | `<world>/maps/` | [section 2](#2-full-map-backup) |
 | `backup-manuscripts.py` | manuscripts, versions, parts, beats, stats, plots, labels, tags | `<world>/manuscripts/` | [section 3](#3-full-manuscript-backup) |
 | `backup-notebooks.py` | notebooks, sections, notes | `<world>/notebooks/` | [section 4](#4-full-notebook-backup) |
@@ -60,22 +60,31 @@ Copy `settings-template.cfg` to `settings.cfg` and fill values:
 - `x_auth_token`
 - `x_application_key`
 - `proxy` (optional; leave empty to use `https://www.worldanvil.com`)
-- `root_folder` (optional; base folder for all data files, e.g. `~/data`; default: `data/` next to the scripts)
+- `backup_folder` (optional; the folder of the backups, see below)
+- `work_folder` (optional; the folder of the working data of the article flow, see below)
 
 The scripts read `settings.cfg` from the folder of the scripts.
 
-When `root_folder` is set, all data is read from and written to
-`<root_folder>/<world_name>/`. Without it, the data goes to `data/<world_name>/`
-next to the scripts (git ignores `data/`).
+The data goes to two places:
 
-Examples with `root_folder=~/data` and `world_name=alana`:
+- the **backup folder**: everything the backup scripts download: the articles (`articles/`), maps, manuscripts, ..., the world, and
+  the list of articles (`all_articles.json`). Set it with `backup_folder`, the exact folder, for example `~/data/alana`. If it is empty,
+  the data goes to `data/<world_name>/` next to the scripts (git ignores `data/`).
+- the **work folder**: the working data of the article flow: `edit` (extracted fields), `deploy` (payloads) and `text-export`. Set it
+  with `work_folder` (the exact folder, for example `~/data/alana.work`). If it is empty, the work data is in the backup folder,
+  as before. The backups, the article backups too, always stay in the backup folder.
+
+Why two places: you can keep what you edit apart from what you back up, for example to back up or sync only the backup folder.
+
+Which folder goes where, with `backup_folder=~/data/alana` and `work_folder=~/data/alana.work`:
 
 | Folder | Path |
 |---|---|
-| JSON backups | `~/data/alana/json/` |
-| Extracted fields | `~/data/alana/edit/` |
-| Deploy payloads | `~/data/alana/deploy/` |
-| Text exports | `~/data/alana/text-export/` |
+| Article backups (JSON) | `~/data/alana/articles/` |
+| List of articles | `~/data/alana/all_articles.json` |
+| Extracted fields (work) | `~/data/alana.work/edit/` |
+| Deploy payloads (work) | `~/data/alana.work/deploy/` |
+| Text exports (work) | `~/data/alana.work/text-export/` |
 | Map backups | `~/data/alana/maps/` |
 | Manuscript backups | `~/data/alana/manuscripts/` |
 | Notebook backups | `~/data/alana/notebooks/` |
@@ -104,7 +113,7 @@ Script:
 Purpose:
 
 - fetches all articles via WA API
-- stores full article JSON in `<world_name>/json/`
+- stores full article JSON in `<world_name>/articles/`
 - downloads only new or changed articles
 - requests are limited like in the map backup (`rate_limit_calls`, `rate_limit_seconds` in `settings.cfg`)
 
@@ -599,7 +608,7 @@ Script:
 
 Purpose:
 
-- searches article JSON files in `<world_name>/json/`
+- searches article JSON files in `<world_name>/articles/`
 - prints matching file paths (one per line, full path) sorted by last updated date, newest first
 - all filters combine: only articles matching every given filter are returned
 
@@ -651,7 +660,7 @@ Script:
 
 Input:
 
-- `<filename>` is a JSON file name from `<world_name>/json/`
+- `<filename>` is a JSON file name from `<world_name>/articles/`
 
 Output:
 
@@ -669,7 +678,7 @@ usage: extract.py [-h] [-f FIELDS] [-l] [-a] [-t] [-e] [-w] filename
 
 Parameters:
 
-- `filename` article json file name, looked up in `<world_name>/json/`
+- `filename` article json file name, looked up in `<world_name>/articles/`
 - `-f, --fields` comma-separated field list to extract
 - `-l, --list` list fields in JSON (default list mode: string fields)
 - `-a, --all` with `-l`, include all fields (not only strings)
@@ -697,7 +706,7 @@ Examples:
 - `python3 extract.py <article-json-file> --export`
 - `python3 extract.py <article-json-file> --export --bbcode`
 - `python3 extract.py --export --all`
-  creates text files of all published articles found in `<world_name>/json/`
+  creates text files of all published articles found in `<world_name>/articles/`
 - `python3 extract.py --copy ~/export --type Person --state public`
   copies all public Person articles to `~/export/`
 - `python3 extract.py --copy ~/export --tags "undead,vampire"`
@@ -751,7 +760,7 @@ Purpose:
 
 Tool to manage the article tags.
 
-- reads article json files from `<world_name>/json/`
+- reads article json files from `<world_name>/articles/`
 - inspects and updates article tags
 - writes tag updates to `<world_name>/deploy/<article-slug>.json`
 - if deploy payloads already exist, updates those files in place so multiple tag operations can be chained safely
@@ -918,13 +927,21 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **Renamed: the folder of the article backups is `articles/` now, it was `json/`.** The name `json` looked like work data, but it is
+  the backup of the articles. Rename an existing folder: `mv <backup folder>/json <backup folder>/articles`. If you do not, `backup-articles.py`
+  finds no articles and downloads all of them again. `find.py`, `extract.py`, `prepare.py` and `tagmgr.py` read `articles/` too.
+- **New: `backup_folder` and `work_folder` settings.** The working data of the article flow (`edit`, `deploy`, `text-export`) can live in a
+  folder of its own, apart from the backups. Both are exact folders. The older setting `root_folder` (the folder that holds the folder of
+  the world, so `root_folder = ~/data` means `backup_folder = ~/data/<world_name>`) still works, but it is not in the template any more;
+  `backup_folder` wins if both are set. Without `work_folder` nothing changes. `extract.py`
+  built the text-export path from the backup folder, it uses the text-export folder now. `backup-articles.py` creates the backup folder as well.
 - **Moved: all files of the former `backup/` folder are now in the repo root.** `backup/` held 50 of the 53 files, and it also held the article
   tools, so the name was wrong. Old paths like `.../wa-tools/backup/find.py` must be changed to `.../wa-tools/find.py`.
   The lint settings `.pylintrc` and `.ruff.toml` are in git now (so the same rules apply on every machine).
 - **Fixed: `prepare.py` ignored `root_folder`.** It looked for the edited files and the downloaded JSON in `<script folder>/<world_name>/`
   and wrote the deploy payload there, while `extract.py` and `deploy.py` use `<root_folder>/<world_name>/`. It now uses `root_folder`
   like all other scripts. `tests/test-prepare.sh` covers it.
-- **Changed: without `root_folder` the data goes to `data/<world_name>/`** next to the scripts (git ignores it), no longer into a
+- **Changed: without a backup folder the data goes to `data/<world_name>/`** next to the scripts (git ignores it), no longer into a
   `<world_name>/` folder between the scripts.
 - **New: `backup-world.py`** for the world itself (`GET /world`): settings, descriptions, `displayCss`, `displayPanelCss`,
   `descriptionParsed`, `jsonMetadata`.
@@ -946,7 +963,7 @@ What changed in these scripts, most recent first. Useful when you update your ow
   Change any script or cron job that calls the old name.
 - **Fixed: the article backup lost articles.** It stepped through the article list by the page size, and skipped entries when
   the API answered with a short page. It now uses the same list reading as the other backups. It also creates the
-  `json/` folder if it is missing, and it follows `rate_limit_calls` and `rate_limit_seconds` from `settings.cfg`.
+  `articles/` folder if it is missing, and it follows `rate_limit_calls` and `rate_limit_seconds` from `settings.cfg`.
 - **Fixed: no new version for a change elsewhere in the world** (all backups except the article backup). Every entity carries a
   copy of its world, and `world.updateDate` in it changes whenever anything in the world is edited. That field is ignored
   when the script decides if an entity changed. The saved file still has the full data.

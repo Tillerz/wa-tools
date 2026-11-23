@@ -78,20 +78,30 @@ def chdir_to_script_dir(file_path):
     os.chdir(Path(file_path).resolve().parent)
 
 
-def world_paths(world_name, root_folder=None):
-    """All data folders of a world. Without root_folder the data goes to data/<world_name>/
-    next to the scripts (git ignores data/), not into the world's name as a folder between
-    the scripts."""
-    if root_folder:
+def world_paths(world_name, root_folder=None, work_folder=None, backup_folder=None):
+    """All data folders of a world. There are two places:
+
+    - the backup folder: what the backup scripts download (the articles, maps, manuscripts, ...,
+      the world, and the list of articles). It is backup_folder, or root_folder/<world_name>, or,
+      if neither is set, data/<world_name>/ next to the scripts (git ignores data/).
+    - the work folder: the working data of the article flow, edit, deploy and text-export.
+      It is work_folder. If that is not set, it is the backup folder.
+
+    backup_folder and work_folder are the exact folders, nothing is added to them.
+    root_folder is the older setting: the folder that holds the folder of the world."""
+    if backup_folder:
+        root = Path(backup_folder).expanduser()
+    elif root_folder:
         root = Path(root_folder).expanduser() / world_name
     else:
         root = Path(__file__).resolve().parent / "data" / world_name
+    work = Path(work_folder).expanduser() if work_folder else root
     return {
         "root": root,
-        "json": root / "json",
-        "edit": root / "edit",
-        "deploy": root / "deploy",
-        "text-export": root / "text-export",
+        "articles": root / "articles",
+        "edit": work / "edit",
+        "deploy": work / "deploy",
+        "text-export": work / "text-export",
         "maps": root / "maps",
         "manuscripts": root / "manuscripts",
         "notebooks": root / "notebooks",
@@ -107,6 +117,11 @@ def world_paths(world_name, root_folder=None):
         "subscribergroups": root / "subscribergroups",
         "histories": root / "histories",
     }
+
+
+def world_paths_from_cfg(cfg):
+    """world_paths() with the folder settings of settings.cfg."""
+    return world_paths(cfg["world_name"], cfg.get("root_folder"), cfg.get("work_folder"), cfg.get("backup_folder"))
 
 
 def parse_wa_datetime(raw):

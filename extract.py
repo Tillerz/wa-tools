@@ -24,7 +24,7 @@ from wa_common import (
     parse_tags,
     sanitize_filename_component,
     unique_preserve_order,
-    world_paths,
+    world_paths_from_cfg,
     writing_fields,
     read_json,
     write_text,
@@ -108,7 +108,7 @@ def build_writing_text(jdata, keep_bbcode=False):
     return "\n\n".join(parts)
 
 
-def write_writing_file(base_folder, jdata, keep_bbcode=False):
+def write_writing_file(text_export_folder, jdata, keep_bbcode=False):
     entity_class = sanitize_filename_component(jdata.get("entityClass", ""))
     slug = sanitize_filename_component(jdata.get("slug", ""))
     if entity_class in {"", ".", ".."} or slug in {"", ".", ".."}:
@@ -117,7 +117,7 @@ def write_writing_file(base_folder, jdata, keep_bbcode=False):
     if len(content.encode()) < 100:
         return False
 
-    target_folder = Path(base_folder) / "text-export" / entity_class
+    target_folder = Path(text_export_folder) / entity_class
     ensure_dir(target_folder)
     target_file = target_folder / f"{slug}.txt"
     write_text(target_file, content)
@@ -199,7 +199,7 @@ def parse_required_tags(args, parser):
 chdir_to_script_dir(__file__)
 
 parser = ArgumentParser()
-parser.add_argument('filename', nargs='?', help="article json file name, it will be looked for in the world/json folder")
+parser.add_argument('filename', nargs='?', help="article json file name, it will be looked for in the world/articles folder")
 parser.add_argument("-f", "--fields", required=False, help="fields to extract, separated by commas, default: " + ",".join(str(x) for x in default_fields))
 parser.add_argument("-l", "--list", required=False, action='store_true', help="list fields found in the json file, default: only strings")
 parser.add_argument("-a", "--all", required=False, action='store_true', help="-l will list ALL fields found in the json file, not just strings")
@@ -222,15 +222,15 @@ args = parser.parse_args()
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg['world_name']
 world_id = cfg['world_id']
-paths = world_paths(world_name, cfg.get('root_folder'))
-json_folder = paths["json"]
+paths = world_paths_from_cfg(cfg)
+json_folder = paths["articles"]
 output_folder = paths["edit"]
 
 if args.copy:
     if args.title is None and args.slug is None and args.text is None and args.tags is None and args.entity_type is None and args.state is None:
         parser.error("--copy requires at least one filter: --title, --slug, --text, --tags, --type, or --state")
     if not json_folder.is_dir():
-        print(f"JSON folder not found: {json_folder.as_posix()}")
+        print(f"Articles folder not found: {json_folder.as_posix()}")
         raise SystemExit(1)
     required_tags = parse_required_tags(args, parser)
     dest_folder = Path(args.copy).expanduser()
@@ -248,7 +248,7 @@ if args.extract_blocks:
     if not args.start or not args.end:
         parser.error("--extract-blocks requires both --start and --end")
     if not json_folder.is_dir():
-        print(f"JSON folder not found: {json_folder.as_posix()}")
+        print(f"Articles folder not found: {json_folder.as_posix()}")
         raise SystemExit(1)
     required_tags = parse_required_tags(args, parser)
     articles = apply_filters(list(load_latest_json_by_slug(json_folder).values()), args, required_tags)
@@ -273,7 +273,7 @@ except OSError as error:
 if args.export and args.all:
     for jdata in load_latest_articles(json_folder):
         if is_published_writing_article(jdata):
-            write_writing_file(paths["root"], jdata, args.bbcode)
+            write_writing_file(paths["text-export"], jdata, args.bbcode)
     raise SystemExit(0)
 
 if args.filename is None:
@@ -292,7 +292,7 @@ if file_input.is_file():
     if args.export:
         if not is_published_writing_article(jdata):
             raise SystemExit(0)
-        if not write_writing_file(paths["root"], jdata, args.bbcode):
+        if not write_writing_file(paths["text-export"], jdata, args.bbcode):
             print("Could not write text export: missing or invalid entityClass/slug.")
             raise SystemExit(1)
         raise SystemExit(0)

@@ -20,7 +20,7 @@ from wa_common import (
     rate_limiter_from_cfg,
     save_cookies,
     save_versioned,
-    world_paths,
+    world_paths_from_cfg,
 )
 
 GRANULARITY = 2   # 1, 2 and 3 give the same 138 fields (checked 2026-11-23); 0 has no jsonMetadata
@@ -68,7 +68,7 @@ world_name = cfg['world_name']
 world_id = cfg['world_id']
 request_headers = build_request_headers(cfg, version)
 api_url = build_api_url(cfg)
-paths = world_paths(world_name, cfg.get('root_folder'))
+paths = world_paths_from_cfg(cfg)
 world_folder = paths["world"]
 latest_folder = world_folder / "latest"
 

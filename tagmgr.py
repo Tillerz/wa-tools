@@ -18,7 +18,7 @@ from wa_common import (
     sanitize_filename_component,
     unique_preserve_order,
     validate_single_comma_free_tag,
-    world_paths,
+    world_paths_from_cfg,
     read_json,
     write_json,
 )
@@ -258,12 +258,12 @@ args = parser.parse_args(argv)
 
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg["world_name"]
-paths = world_paths(world_name, cfg.get('root_folder'))
-json_folder = paths["json"]
+paths = world_paths_from_cfg(cfg)
+json_folder = paths["articles"]
 deploy_folder = paths["deploy"]
 
 if not json_folder.is_dir():
-    print(f"JSON folder not found: {json_folder.as_posix()}")
+    print(f"Articles folder not found: {json_folder.as_posix()}")
     raise SystemExit(1)
 
 try:

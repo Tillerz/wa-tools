@@ -21,7 +21,7 @@ from wa_common import (
     rate_limiter_from_cfg,
     read_text,
     save_cookies,
-    world_paths,
+    world_paths_from_cfg,
     write_json,
 )
 
@@ -39,20 +39,20 @@ world_name = cfg['world_name']
 world_id = cfg['world_id']
 request_headers = build_request_headers(cfg, version)
 api_url = build_api_url(cfg)
-paths = world_paths(world_name, cfg.get('root_folder'))
+paths = world_paths_from_cfg(cfg)
 
 # this is the root folder for the backup:
 root_folder = paths["root"]
-root_folder_json = paths["json"]
+articles_folder = paths["articles"]
 file_all_articles_new = root_folder / "all_articles_new.json"
 file_all_articles_old = root_folder / "all_articles_old.json"
 file_all_articles = root_folder / "all_articles.json"
 
 # create the backup folders if they don't exist
 try:
-    ensure_dir(root_folder_json)
+    ensure_dir(articles_folder)    # the folder of the world is created with it
 except OSError as error:
-    print(f"Cannot create folder {root_folder_json}: {error}")
+    print(f"Cannot create folder {articles_folder}: {error}")
     raise SystemExit(1)
 
 # --- action starts here ---------------------------------------------------
@@ -131,7 +131,7 @@ with requests.Session() as session:
         last_modif = jdata["updateDate"]["date"]
 
         # build path + filename to save the json:
-        file_json_article_base = root_folder_json / (
+        file_json_article_base = articles_folder / (
             slug + '_' + last_modif.replace(".000000","").replace(' ','_').replace(':','')
         )
         last_modif_old = ""

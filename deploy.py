@@ -13,7 +13,7 @@ from wa_common import (
     load_cfg_or_exit,
     patch_article,
     read_json,
-    world_paths,
+    world_paths_from_cfg,
 )
 
 # main
@@ -34,7 +34,7 @@ args = parser.parse_args()
 
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg["world_name"]
-deploy_folder = world_paths(world_name, cfg.get('root_folder'))["deploy"]
+deploy_folder = world_paths_from_cfg(cfg)["deploy"]
 if not deploy_folder.is_dir():
     print(f"Deploy folder not found: {deploy_folder.as_posix()}")
     raise SystemExit(1)

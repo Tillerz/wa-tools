@@ -16,7 +16,7 @@ from wa_common import (
     matches_type,
     parse_tags,
     unique_preserve_order,
-    world_paths,
+    world_paths_from_cfg,
     writing_fields,
 )
 
@@ -42,11 +42,11 @@ if args.title is None and args.slug is None and args.text is None and args.tags 
 
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg["world_name"]
-paths = world_paths(world_name, cfg.get("root_folder"))
-json_folder = paths["json"]
+paths = world_paths_from_cfg(cfg)
+json_folder = paths["articles"]
 
 if not json_folder.is_dir():
-    print(f"JSON folder not found: {json_folder.as_posix()}")
+    print(f"Articles folder not found: {json_folder.as_posix()}")
     raise SystemExit(1)
 
 required_tags = []

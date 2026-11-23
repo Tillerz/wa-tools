@@ -11,7 +11,7 @@ from wa_common import (
     read_json,
     read_text,
     sanitize_filename_component,
-    world_paths,
+    world_paths_from_cfg,
     write_json,
 )
 
@@ -95,7 +95,7 @@ parser.add_argument("article_slug", help="article slug to prepare from <world>/e
 args = parser.parse_args()
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg["world_name"]
-paths = world_paths(world_name, cfg.get("root_folder"))
+paths = world_paths_from_cfg(cfg)
 slug = sanitize_slug(args.article_slug)
 if slug in {"", ".", ".."}:
     print("Invalid article slug.")
@@ -107,14 +107,14 @@ if not edit_folder.is_dir():
     raise SystemExit(1)
 
 try:
-    source_json_path = resolve_source_json(paths["json"], slug, edit_folder)
+    source_json_path = resolve_source_json(paths["articles"], slug, edit_folder)
     source_json = read_json(source_json_path)
 except (FileNotFoundError, ValueError) as error:
     print(f"Error: {error}")
     raise SystemExit(1)
 
 try:
-    article_id, id_source = resolve_article_id(paths["json"], slug, edit_folder)
+    article_id, id_source = resolve_article_id(paths["articles"], slug, edit_folder)
 except (FileNotFoundError, ValueError) as error:
     print(f"Error: {error}")
     raise SystemExit(1)
