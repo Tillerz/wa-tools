@@ -1,18 +1,18 @@
 __pycache__
+.vscode
+.claude
 .history
-.pylintrc
-.ruff.toml
 .settings
-alana
-*.json
 *.bak
 settings.cfg
-update.sh
-copy.sh
-.vscode/*-plugin/*
 
+*.json
 # test fixtures are wanted in git, test output is not
-!backup/tests/fixtures-*.json
-backup/tests/out/
+!tests/fixtures-*.json
+tests/out/
+api-docs/
 cookies-*.json
 data/
+
+# temporary symlink backup -> . so the old paths keep working until the other projects use the new ones
+/backup
