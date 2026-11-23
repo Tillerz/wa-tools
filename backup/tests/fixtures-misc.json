@@ -219,5 +219,73 @@
       "entityClass": "BlockTemplate",
       "updateDate": null
     }
+  ],
+  "categories": [
+    {
+      "id": "cat00000-0000-0000-0000-000000000001",
+      "title": "Characters",
+      "slug": null,
+      "state": null,
+      "entityClass": "Category",
+      "updateDate": {
+        "date": "2026-04-01 10:00:00.000000"
+      },
+      "children": [
+        {
+          "id": "cat00000-0000-0000-0000-000000000002"
+        }
+      ]
+    },
+    {
+      "id": "cat00000-0000-0000-0000-000000000002",
+      "title": "Characters",
+      "slug": null,
+      "state": null,
+      "entityClass": "Category",
+      "updateDate": {
+        "date": "2026-04-02 10:00:00.000000"
+      },
+      "parent": {
+        "id": "cat00000-0000-0000-0000-000000000001"
+      }
+    },
+    {
+      "id": "cat00000-0000-0000-0000-000000000003",
+      "title": "Places",
+      "slug": null,
+      "state": null,
+      "entityClass": "Category",
+      "updateDate": {
+        "date": "2026-04-03 10:00:00.000000"
+      }
+    }
+  ],
+  "subscribergroups": [
+    {
+      "id": "grp00000-0000-0000-0000-000000000001",
+      "title": "GM",
+      "slug": null,
+      "state": null,
+      "entityClass": "Subscribergroup",
+      "updateDate": null,
+      "paidsubscribers": [
+        {
+          "id": "usr1",
+          "title": "player one",
+          "slug": null,
+          "state": null,
+          "entityClass": "User",
+          "updateDate": null
+        }
+      ]
+    },
+    {
+      "id": "grp00000-0000-0000-0000-000000000002",
+      "title": "Locked",
+      "slug": null,
+      "state": null,
+      "entityClass": "Subscribergroup",
+      "updateDate": null
+    }
   ]
 }

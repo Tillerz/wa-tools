@@ -12,9 +12,9 @@ Run them one by one, there is no script that runs them all.
 | `backup-manuscripts.py` | manuscripts, versions, parts, beats, stats, plots, labels, tags | `<world>/manuscripts/` | [section 3](#3-full-manuscript-backup) |
 | `backup-notebooks.py` | notebooks, sections, notes | `<world>/notebooks/` | [section 4](#4-full-notebook-backup) |
 | `backup-timelines.py` | timelines, histories (events) | `<world>/timelines/`, `<world>/histories/` | [section 5](#5-full-timeline-backup) |
-| `backup-misc.py` | canvases, secrets, variable collections, variables, block folders, blocks, block templates | `<world>/canvases/`, `<world>/secrets/`, `<world>/variables/`, `<world>/blocks/`, `<world>/blocktemplates/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
+| `backup-misc.py` | canvases, secrets, categories, subscriber groups, variable collections, variables, block folders, blocks, block templates | `<world>/canvases/`, `secrets/`, `categories/`, `subscribergroups/`, `variables/`, `blocks/`, `blocktemplates/` | [section 6](#6-misc-backup-canvases-secrets-variables) |
 
-Not backed up yet: images, categories, subscriber groups, RPG systems.
+Not backed up yet: images, RPG systems.
 Not backed up because WA does not allow it: manuscript bookmarks (WA answers with an error).
 Not backed up on purpose: chronicles (metadata only).
 
@@ -81,6 +81,8 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Variable backups | `~/data/alana/variables/` |
 | Block backups | `~/data/alana/blocks/` |
 | Block template backups | `~/data/alana/blocktemplates/` |
+| Category backups | `~/data/alana/categories/` |
+| Subscriber group backups | `~/data/alana/subscribergroups/` |
 
 
 # Scripts
@@ -389,10 +391,12 @@ What is bundled in this script:
 | `canvases` | canvases (whiteboards) | `POST /world/canvases`, then `GET /canvas` for each | `<world_name>/canvases/` | 1 + number of canvases |
 | `secrets` | secrets | `POST /world/secrets`, then `GET /secret` for each | `<world_name>/secrets/` | 1 + number of secrets |
 | `variables` | variable collections, and the variables in each collection | `POST /world/variablecollections`, `GET /variablecollection` for each, then `POST /variablecollection/variables` and `GET /variable` for each variable | `<world_name>/variables/` | 1 + collections x 2 + variables |
+| `categories` | categories (the article categories of the world) | `POST /world/categories`, then `GET /category` for each | `<world_name>/categories/` | 1 + number of categories |
+| `subscribergroups` | subscriber groups, with their subscribers | `POST /world/subscribergroups`, then `GET /subscribergroup` for each | `<world_name>/subscribergroups/` | 1 + number of groups |
 | `blocktemplates` | block templates (your own, the whole user, not tied to a world) | `POST /user/blocktemplates` (with the user id from `GET /identity`), then `GET /blocktemplate` for each | `<world_name>/blocktemplates/` | 2 + templates |
 | `blocks` | block folders, and the blocks in each folder | `POST /world/blockfolders`, `GET /blockfolder` for each, then `POST /blockfolder/blocks` and `GET /block` for each block | `<world_name>/blocks/` | 1 + folders x 2 + blocks |
 
-- `canvases`, `secrets` and `blocktemplates` are driven by a small table (`SIMPLE_TYPES` in the script). `variables` and `blocks` are driven by a
+- `canvases`, `secrets`, `categories`, `subscribergroups` and `blocktemplates` are driven by a small table (`SIMPLE_TYPES` in the script). `variables` and `blocks` are driven by a
   second table (`NESTED_TYPES`), because their entries are one level below a parent (collection, block folder).
 - another type of one of these patterns needs one line in the table and a folder in `world_paths()` in `wa_common.py`.
 - the calls are sent one after the other, so the number of calls is the run time: with the default limit of 5 calls
@@ -406,8 +410,8 @@ usage: backup-misc.py [-h] [--type TYPE] [--settings FILE]
 
 Parameters:
 
-- `--type <canvases|secrets|blocktemplates|variables|blocks>` back up this type only. Can be given several times. Default: all five
-  (see the table above). The block templates are the slowest part of a full run (about 3 minutes for 183 templates).
+- `--type <canvases|secrets|categories|subscribergroups|blocktemplates|variables|blocks>` back up this type only. Can be given several times.
+  Default: all seven (see the table above). The block templates are the slowest part of a full run (about 3 minutes for 183 templates).
 - `--settings <file>` use another settings file, for a second world or for the
   test setup. Each settings file gets its own cookie file.
 
@@ -433,6 +437,10 @@ Folder layout:
 | `variables/<collection>_<date>.json` | one variable collection |
 | `variables/<collection>_variables_<date>.json` | list of the variables of the collection |
 | `variables/<collection>_variables/<variable>_<date>.json` | one variable, with its key `k` and value `v` |
+| `categories/all_categories_<date>.json` | list of all categories |
+| `categories/<category>_<date>.json` | one category, with its `parent`, `children`, and the `articles` in it (short references) |
+| `subscribergroups/all_subscribergroups_<date>.json` | list of all subscriber groups |
+| `subscribergroups/<group>_<date>.json` | one subscriber group, with its `paidsubscribers` |
 | `blocktemplates/all_blocktemplates_<date>.json` | list of all block templates of the user |
 | `blocktemplates/<template>_<date>.json` | one block template, with its `parts` (short references), `formSchema` and `displayStructure` |
 | `blocks/all_blockfolders_<date>.json` | list of all block folders |
@@ -444,6 +452,8 @@ Notes:
 
 - files are named `<title>_<first 8 characters of the id>`, because titles are not unique. Many variables have
   no title; those are named by the first 8 characters of the id. The key and the value are inside the file.
+- **subscriber group files contain your subscribers:** `paidsubscribers` lists them by name (`title`) and profile link, no email address.
+  Keep that in mind when you share or publish a backup folder.
 - **block templates belong to your user, not to a world** (like notebooks, but a template has no `world` field, so there is no
   filter). They are saved in the folder of the configured world. With several worlds, each world folder gets all templates.
 - a block template is saved from `GET /blocktemplate`, which holds the structure (`formSchema`, `displayStructure`) and the
@@ -792,6 +802,7 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
 - **New: block templates** in `backup-misc.py` (`--type blocktemplates`). `BackupRun.user_id()` reads the user id for the lists that
   belong to the user (the notebook backup uses it too).
 - **New: block folders and blocks** in `backup-misc.py` (`--type blocks`). The shared code now accepts integer ids.

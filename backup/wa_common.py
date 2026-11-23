@@ -98,6 +98,8 @@ def world_paths(world_name, root_folder=None):
         "variables": root / "variables",
         "blocks": root / "blocks",
         "blocktemplates": root / "blocktemplates",
+        "categories": root / "categories",
+        "subscribergroups": root / "subscribergroups",
         "histories": root / "histories",
     }
 

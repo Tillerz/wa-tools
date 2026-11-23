@@ -32,6 +32,8 @@ SIMPLE_TYPES = {
     "canvases": ("world/canvases", "canvas", "world"),
     "secrets": ("world/secrets", "secret", "world"),
     "blocktemplates": ("user/blocktemplates", "blocktemplate", "user"),
+    "categories": ("world/categories", "category", "world"),
+    "subscribergroups": ("world/subscribergroups", "subscribergroup", "world"),
 }
 # The types with children: a list of parents for the world, one read per parent, then for
 # every parent a list of its children and one read per child.
@@ -48,7 +50,7 @@ NESTED_TYPES = {
 ALL_TYPES = list(SIMPLE_TYPES) + list(NESTED_TYPES)
 
 
-parser = argparse.ArgumentParser(description="Backup canvases, secrets, block templates, variable collections with their variables, and block folders with their blocks.")
+parser = argparse.ArgumentParser(description="Backup canvases, secrets, categories, subscriber groups, block templates, variable collections with their variables, and block folders with their blocks.")
 parser.add_argument("--type", choices=ALL_TYPES, action="append", metavar="TYPE",
                     help=f"back up this type only; can be given several times (default: all of {', '.join(ALL_TYPES)})")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",

@@ -46,6 +46,8 @@ WORLD_LISTS = {
     "world/variablecollections": "variablecollections",
     "world/blockfolders": "blockfolders",
     "user/blocktemplates": "blocktemplates",
+    "world/categories": "categories",
+    "world/subscribergroups": "subscribergroups",
 }
 WORLD_READS = {
     "canvas": "canvases",
@@ -53,6 +55,8 @@ WORLD_READS = {
     "variablecollection": "variablecollections",
     "blockfolder": "blockfolders",
     "blocktemplate": "blocktemplates",
+    "category": "categories",
+    "subscribergroup": "subscribergroups",
 }
 LIST_KEYS = ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories",
              *WORLD_LISTS.values())
