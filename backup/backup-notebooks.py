@@ -89,16 +89,21 @@ with requests.Session() as session:
     print(f"Found {len(all_notebooks)} notebooks of the user.")
     run.save(notebooks_folder, "all_notebooks", all_notebooks, run.run_stamp)
 
+    # Name the notebooks before one is picked: a name depends on the other notebooks
+    # (two can share a title), and it must not change when --notebook is used.
+    used = {}
+    names = {entry["id"]: stable_basename(entry, used)
+             for entry in sort_by_id(all_notebooks) if entry.get("id")}
+
     if args.notebook:
         all_notebooks = select_one_or_exit(all_notebooks, args.notebook, "notebook")
 
     remaining = len(all_notebooks)
-    used = {}
     for entry in sort_by_id(all_notebooks):
         notebook_id = entry.get("id")
         if not notebook_id:
             continue
-        name = stable_basename(entry, used)
+        name = names[notebook_id]
         folder = notebooks_folder / name
         print(f"--- NOTEBOOK: {name} ({notebook_id})")
 

@@ -62,7 +62,9 @@ echo "--- run 3 (one notebook by uuid, even from another world) -----"
 run3=$(python3 backup-notebooks.py --settings tests/settings-test.cfg --notebook "$N2_ID")
 check "notebook picked" 1 "$(echo "$run3" | grep -c 'Backing up 1 notebook: Notes')"
 check "not skipped" 0 "$(echo "$run3" | grep -c 'skipped')"
-check "other world notebook saved" 1 "$(count "$BASE/Notes_nnnnnnnn" 'notebook_*.json')"
+# the two notebooks share a title and the first 8 characters of the id: separate folders, always
+check "other world notebook in its own folder" 1 "$(count "$BASE/Notes_$N2_ID" 'notebook_*.json')"
+check "first notebook folder untouched" 1 "$(count "$NB1" 'notebook_*.json')"
 
 echo "---------------------------------------------------------------"
 if [ "$fail" = 0 ]; then echo "ALL TESTS PASSED"; else echo "TESTS FAILED"; fi
