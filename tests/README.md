@@ -66,8 +66,7 @@ python3 backup-maps.py --settings tests/settings-test.cfg
 ```
 
 `settings-test.cfg` sets `proxy = http://127.0.0.1:8099`, so all calls go to the
-fake server. It also uses its own cookie file, so your real `cookies.json` is
-never overwritten.
+fake server.
 
 ## Make the server misbehave
 

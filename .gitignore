@@ -11,7 +11,6 @@ settings.cfg
 !tests/fixtures-*.json
 tests/out/
 api-docs/
-cookies-*.json
 data/
 
 # temporary symlink backup -> . so the old paths keep working until the other projects use the new ones

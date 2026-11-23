@@ -12,7 +12,7 @@ M2_ID=mmmmmmmm-0000-0000-0000-000000000002
 BASE="$OUT/testworld/manuscripts"
 V1="$BASE/$M1/versions/Draft 1_vvvvvvvv"
 
-rm -rf "$OUT" cookies-settings-test.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-manuscripts.json \
     --short-pages \

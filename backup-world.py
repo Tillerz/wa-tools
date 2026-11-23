@@ -12,13 +12,10 @@ from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
-    cookie_file_for,
     ensure_dir,
     entity_timestamp,
     load_cfg_or_exit,
-    load_cookies,
     rate_limiter_from_cfg,
-    save_cookies,
     save_versioned,
     world_paths_from_cfg,
 )
@@ -62,7 +59,6 @@ args = parser.parse_args()
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -81,8 +77,6 @@ except OSError as error:
 # --- action starts here ---------------------------------------------------
 
 with requests.Session() as session:
-    load_cookies(session, file_cookies)
-
     run = BackupRun(session, api_url, request_headers, rate_limiter_from_cfg(cfg), GRANULARITY)
 
     world = run.read("world", "world", world_id)
@@ -114,5 +108,3 @@ with requests.Session() as session:
         print(f"    latest/{target.name}: {len(text)} characters")
 
     run.print_summary("world files")
-
-    save_cookies(session, file_cookies)

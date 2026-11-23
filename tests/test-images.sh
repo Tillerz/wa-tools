@@ -10,7 +10,7 @@ BULK=60          # more than one page, so the paging really runs
 TOTAL=$((BULK + 3))
 BASE="$OUT/testworld/images"
 
-rm -rf "$OUT" cookies-settings-test.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-images.json \
     --short-pages --bulk-images "$BULK" &

@@ -12,15 +12,12 @@ from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
-    cookie_file_for,
     ensure_dir,
     fetch_all_pages,
     fetch_article,
     load_cfg_or_exit,
-    load_cookies,
     rate_limiter_from_cfg,
     read_text,
-    save_cookies,
     world_paths_from_cfg,
     write_json,
 )
@@ -33,7 +30,6 @@ args = parser.parse_args()
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -59,8 +55,6 @@ except OSError as error:
 
 # create a session
 with requests.Session() as session:
-    load_cookies(session, file_cookies)
-
     # global timer
     loop_start = time.monotonic()
 
@@ -193,5 +187,3 @@ with requests.Session() as session:
     elapsed = int(time.monotonic() - loop_start)
     minutes, seconds = divmod(elapsed, 60)
     print(f"Elapsed time: {minutes}m {seconds:02d}s")
-
-    save_cookies(session, file_cookies)

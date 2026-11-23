@@ -9,7 +9,7 @@ PORT=8099
 BULK=60          # more than one page, so the paging really runs
 TOTAL=$((BULK + 3))
 
-rm -rf "$OUT" cookies-settings-test.json cookies-settings-test-work.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-articles.json \
     --short-pages --bulk-articles "$BULK" &

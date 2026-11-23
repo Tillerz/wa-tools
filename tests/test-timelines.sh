@@ -11,7 +11,7 @@ TOTAL=$((BULK + 3))
 T2_ID=tttttttt-0000-0000-0000-000000000002
 BASE="$OUT/testworld"
 
-rm -rf "$OUT" cookies-settings-test.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-timelines.json \
     --short-pages --bulk-histories "$BULK" \

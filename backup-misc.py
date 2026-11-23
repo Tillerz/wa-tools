@@ -11,13 +11,10 @@ from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
-    cookie_file_for,
     ensure_dir,
     load_cfg_or_exit,
-    load_cookies,
     rate_limiter_from_cfg,
     safe_fetch,
-    save_cookies,
     world_paths_from_cfg,
 )
 
@@ -61,7 +58,6 @@ selected_types = args.type or ALL_TYPES
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -79,8 +75,6 @@ except OSError as error:
 # --- action starts here ---------------------------------------------------
 
 with requests.Session() as session:
-    load_cookies(session, file_cookies)
-
     run = BackupRun(session, api_url, request_headers, rate_limiter_from_cfg(cfg), GRANULARITY)
 
     for type_name in selected_types:
@@ -106,5 +100,3 @@ with requests.Session() as session:
                                 f"{base}_{child_name}")
 
     run.print_summary("types")
-
-    save_cookies(session, file_cookies)

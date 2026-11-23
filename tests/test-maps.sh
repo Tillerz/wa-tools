@@ -8,7 +8,7 @@ OUT=tests/out
 PORT=8099
 FORBIDDEN=22222222-2222-2222-2222-222222222222
 
-rm -rf "$OUT" cookies-settings-test.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --short-pages --bulk-markers 130 \
     --forbid "map/markers:$FORBIDDEN" &

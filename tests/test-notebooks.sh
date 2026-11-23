@@ -11,7 +11,7 @@ LOCKED=sssssss2-0000-0000-0000-000000000002
 BASE="$OUT/testworld/notebooks"
 NB1="$BASE/Notes_nnnnnnnn"      # the notebook of the test world
 
-rm -rf "$OUT" cookies-settings-test.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet \
     --data tests/fixtures-notebooks.json \
     --short-pages \

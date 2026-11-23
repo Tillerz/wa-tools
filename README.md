@@ -126,7 +126,7 @@ usage: backup-articles.py [-h] [--settings FILE]
 Parameters:
 
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 
 ## 2) Full Map Backup
@@ -160,7 +160,7 @@ Parameters:
 - `--force` fetch marker details again even when the saved version already
   matches the marker's last update date
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Examples:
 
@@ -234,7 +234,7 @@ Parameters:
   title is enough, as long as it matches only one manuscript; if it matches several,
   the script lists them and stops.
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Examples:
 
@@ -305,7 +305,7 @@ Parameters:
   enough, as long as it matches only one notebook. A notebook picked this way is
   saved even if it belongs to another world.
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Folder layout per notebook:
 
@@ -359,7 +359,7 @@ usage: backup-timelines.py [-h] [--settings FILE]
 Parameters:
 
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Folder layout:
 
@@ -429,7 +429,7 @@ Parameters:
 - `--type <canvases|secrets|categories|subscribergroups|blocktemplates|variables|blocks>` back up this type only. Can be given several times.
   Default: all seven (see the table above). The block templates are the slowest part of a full run (about 3 minutes for 183 templates).
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Examples:
 
@@ -522,7 +522,7 @@ Parameters:
 - `--max <N>` back up the first N images only. Use this to try it: `--max 50` makes 1 list call and 50 read calls.
 - `--all` back up all images: 1 list call per 50 images, and 1 read call per image.
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Examples:
 
@@ -575,7 +575,7 @@ usage: backup-world.py [-h] [--settings FILE]
 Parameters:
 
 - `--settings <file>` use another settings file, for a second world or for the
-  test setup. Each settings file gets its own cookie file.
+  test setup.
 
 Folder layout:
 
@@ -927,6 +927,9 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **Removed: the cookie files** (`cookies.json` and `cookies-<settings name>.json`). WA and Cloudflare never set a cookie for API calls (checked
+  directly and through the proxy: no `Set-Cookie` header), so the files always held `{}`. The scripts no longer load or save cookies. You can
+  delete old `cookies*.json` files.
 - **Renamed: the folder of the article backups is `articles/` now, it was `json/`.** The name `json` looked like work data, but it is
   the backup of the articles. Rename an existing folder: `mv <backup folder>/json <backup folder>/articles`. If you do not, `backup-articles.py`
   finds no articles and downloads all of them again. `find.py`, `extract.py`, `prepare.py` and `tagmgr.py` read `articles/` too.
@@ -968,7 +971,7 @@ What changed in these scripts, most recent first. Useful when you update your ow
   copy of its world, and `world.updateDate` in it changes whenever anything in the world is edited. That field is ignored
   when the script decides if an entity changed. The saved file still has the full data.
 - **Shared code:** `wa_common.py` has the code that the backups share (rate limit, paging, versioned saving, file names,
-  cookies, the `BackupRun` class for list-then-read-each).
+  the `BackupRun` class for list-then-read-each).
 - **Tests:** a fake World Anvil API in `tests/`, and one smoke test per backup. See [Tests](#tests).
 - **New option `--settings <file>`** for all backups, to use another settings file (second world, or the test setup).
 

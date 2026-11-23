@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import requests
-from requests.utils import cookiejar_from_dict, dict_from_cookiejar
 import time
 
 TEXT_ENCODING = "utf-8"
@@ -238,22 +237,6 @@ class RateLimiter:
 def rate_limiter_from_cfg(cfg):
     return RateLimiter(int(cfg.get("rate_limit_calls") or 5),
                        int(cfg.get("rate_limit_seconds") or 5))
-
-
-def cookie_file_for(settings_path):
-    """A second settings file gets its own cookie jar, so a test run cannot
-    overwrite the cookies that belong to the real world."""
-    stem = Path(settings_path).stem
-    return "cookies.json" if stem == "settings" else f"cookies-{stem}.json"
-
-
-def load_cookies(session, cookie_file):
-    if Path(cookie_file).is_file():
-        session.cookies.update(cookiejar_from_dict(read_json(cookie_file)))
-
-
-def save_cookies(session, cookie_file):
-    write_json(cookie_file, dict_from_cookiejar(session.cookies) if session.cookies else {})
 
 
 def entity_timestamp(data, fallback):

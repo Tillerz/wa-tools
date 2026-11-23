@@ -11,12 +11,9 @@ from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
-    cookie_file_for,
     ensure_dir,
     load_cfg_or_exit,
-    load_cookies,
     rate_limiter_from_cfg,
-    save_cookies,
     world_paths_from_cfg,
 )
 
@@ -46,7 +43,6 @@ if args.max is not None and args.max < 1:
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -64,8 +60,6 @@ except OSError as error:
 # --- action starts here ---------------------------------------------------
 
 with requests.Session() as session:
-    load_cookies(session, file_cookies)
-
     run = BackupRun(session, api_url, request_headers, rate_limiter_from_cfg(cfg), GRANULARITY)
 
     # the list of a limited run has its own file name, it is not the list of all images
@@ -74,5 +68,3 @@ with requests.Session() as session:
                         list_name, children_folder=images_folder, max_items=args.max)
 
     run.print_summary("images")
-
-    save_cookies(session, file_cookies)

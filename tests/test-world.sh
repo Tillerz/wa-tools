@@ -8,7 +8,7 @@ OUT=tests/out
 PORT=8099
 BASE="$OUT/testworld/world"
 
-rm -rf "$OUT" cookies-settings-test.json
+rm -rf "$OUT"
 python3 tests/mock_wa_api.py --port "$PORT" --quiet --data tests/fixtures-world.json &
 MOCK_PID=$!
 trap 'kill $MOCK_PID 2>/dev/null' EXIT

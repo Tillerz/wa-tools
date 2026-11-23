@@ -11,14 +11,11 @@ from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
-    cookie_file_for,
     ensure_dir,
     entity_basename,
     entity_timestamp,
     load_cfg_or_exit,
-    load_cookies,
     rate_limiter_from_cfg,
-    save_cookies,
     sort_by_id,
     stable_basename,
     world_paths_from_cfg,
@@ -38,7 +35,6 @@ args = parser.parse_args()
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -58,8 +54,6 @@ except OSError as error:
 # --- action starts here ---------------------------------------------------
 
 with requests.Session() as session:
-    load_cookies(session, file_cookies)
-
     run = BackupRun(session, api_url, request_headers, rate_limiter_from_cfg(cfg), GRANULARITY)
 
     # 1) timelines. The list entries are thin, so every timeline is read on its own.
@@ -92,5 +86,3 @@ with requests.Session() as session:
                          entity_timestamp(entry, run.run_stamp))
 
     run.print_summary("timelines and histories")
-
-    save_cookies(session, file_cookies)

@@ -11,15 +11,12 @@ from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
-    cookie_file_for,
     ensure_dir,
     entity_basename,
     entity_timestamp,
     fetch_all_pages,
     load_cfg_or_exit,
-    load_cookies,
     rate_limiter_from_cfg,
-    save_cookies,
     select_one_or_exit,
     sort_by_id,
     world_paths_from_cfg,
@@ -42,7 +39,6 @@ args = parser.parse_args()
 # main
 chdir_to_script_dir(__file__)
 
-file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -60,8 +56,6 @@ except OSError as error:
 # --- action starts here ---------------------------------------------------
 
 with requests.Session() as session:
-    load_cookies(session, file_cookies)
-
     run = BackupRun(session, api_url, request_headers, rate_limiter_from_cfg(cfg), GRANULARITY)
 
     # 1) list all manuscripts of the world
@@ -130,5 +124,3 @@ with requests.Session() as session:
         print(f'------------------------ {remaining} manuscripts left')
 
     run.print_summary("manuscripts")
-
-    save_cookies(session, file_cookies)
