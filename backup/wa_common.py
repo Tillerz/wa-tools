@@ -93,6 +93,9 @@ def world_paths(world_name, root_folder=None):
         "manuscripts": root / "manuscripts",
         "notebooks": root / "notebooks",
         "timelines": root / "timelines",
+        "canvases": root / "canvases",
+        "secrets": root / "secrets",
+        "variables": root / "variables",
         "histories": root / "histories",
     }
 
@@ -260,13 +263,29 @@ def newest_version(folder, base):
     return files[-1] if files else None
 
 
+def without_volatile(value, parent_key=None):
+    """A copy of <value> without the fields that change when nothing in the entity changed.
+
+    Every entity carries a small copy of its world, and the world's updateDate changes
+    whenever anything in the world is edited. Compared as it is, every saved entity would
+    get a new version after each edit anywhere. This is used to compare only; the file
+    keeps the full data."""
+    if isinstance(value, dict):
+        return {key: without_volatile(item, key) for key, item in value.items()
+                if not (parent_key == "world" and key == "updateDate")}
+    if isinstance(value, list):
+        return [without_volatile(item, parent_key) for item in value]
+    return value
+
+
 def save_versioned(folder, base, data, timestamp):
-    """Write <base>_<timestamp>.json, unless the newest saved version is identical."""
+    """Write <base>_<timestamp>.json, unless the newest saved version is identical.
+    The change of a volatile field alone (see without_volatile) does not count."""
     ensure_dir(folder)
     previous = newest_version(folder, base)
     if previous is not None:
         try:
-            if read_json(previous) == data:
+            if without_volatile(read_json(previous)) == without_volatile(data):
                 return False
         except (OSError, ValueError):
             pass
@@ -405,13 +424,14 @@ class BackupRun:
             self.request_headers, self.granularity))
 
     def backup_children(self, label, list_path, read_path, parent_id, folder, list_name,
-                        skip_if_empty=False):
+                        skip_if_empty=False, children_folder=None):
         """Save the list of the children of one entity, and every child itself.
 
         The list entries are thin: a part or a note in a list has little or no content,
         so every child is read once with its own GET. The list goes to
         <folder>/<list_name>_<date>.json, the children to
-        <folder>/<list_name>/<name>_<date>.json.
+        <folder>/<list_name>/<name>_<date>.json, or to <children_folder>/<name>_<date>.json
+        if that is given.
         With skip_if_empty, an empty list that was never saved before is not written
         and not printed (used for the beats: most parts have none).
         Returns [(list entry, file base name)], for the caller to go on with."""
@@ -429,7 +449,8 @@ class BackupRun:
             base = stable_basename(entry, used)
             data = self.read(f"{label}: {list_name} {base}", read_path, entry["id"])
             if data is not None:
-                self.save(folder / list_name, base, data, entity_timestamp(data, self.run_stamp))
+                self.save(children_folder or folder / list_name, base, data,
+                          entity_timestamp(data, self.run_stamp))
             result.append((entry, base))
         return result
 

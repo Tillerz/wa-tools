@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 """Fake World Anvil Boromir API, for testing the backup scripts offline.
 
-It answers the map, article, manuscript, notebook and timeline endpoints that
-backup-maps.py, backup-articles.py, backup-manuscripts.py, backup-notebooks.py and
-backup-timelines.py use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
+It answers the map, article, manuscript, notebook, timeline, canvas, secret and
+variable endpoints that the backup scripts use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
 testable:
 
   --short-pages   hand back one entry less than the requested limit, while more
@@ -36,7 +35,22 @@ CHILD_LISTS = {
     "manuscript_part/manuscript_beats": "part_beats",
     "notebook/notesections": "notebook_sections",
     "notesection/notes": "section_notes",
+    "variablecollection/variables": "collection_variables",
 }
+# List endpoints of the world, and the single reads of the same entities:
+# path -> fixture key. The fixture holds a plain list under that key.
+WORLD_LISTS = {
+    "world/canvases": "canvases",
+    "world/secrets": "secrets",
+    "world/variablecollections": "variablecollections",
+}
+WORLD_READS = {
+    "canvas": "canvases",
+    "secret": "secrets",
+    "variablecollection": "variablecollections",
+}
+LIST_KEYS = ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories",
+             *WORLD_LISTS.values())
 # Single reads: path -> fixture key to look the entity up in.
 CHILD_READS = {
     "manuscript_version": "manuscript_versions",
@@ -48,15 +62,15 @@ CHILD_READS = {
     "manuscript_beat": "part_beats",
     "notesection": "notebook_sections",
     "note": "section_notes",
+    "variable": "collection_variables",
 }
 USER_ID = "uuuuuuuu-0000-0000-0000-000000000001"
 
 
 def load_fixture(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    for key in ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories", "layers", "markergroups", "groupmarkers", "markers",
-                *CHILD_LISTS.values()):
-        data.setdefault(key, [] if key in ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories") else {})
+    for key in (*LIST_KEYS, "layers", "markergroups", "groupmarkers", "markers", *CHILD_LISTS.values()):
+        data.setdefault(key, [] if key in LIST_KEYS else {})
     return data
 
 
@@ -140,6 +154,8 @@ def make_handler(data, options):
                 entity = find_entity([data["notebooks"]], entity_id)
             elif path == "timeline":
                 entity = find_entity([data["timelines"]], entity_id)
+            elif path in WORLD_READS:
+                entity = find_entity([data[WORLD_READS[path]]], entity_id)
             elif path in CHILD_READS:
                 entity = find_entity(data[CHILD_READS[path]].values(), entity_id)
             elif path == "map":
@@ -178,6 +194,8 @@ def make_handler(data, options):
                 entries = data["timelines"]
             elif path == "world/histories":
                 entries = data["histories"]
+            elif path in WORLD_LISTS:
+                entries = data[WORLD_LISTS[path]]
             elif path in CHILD_LISTS:
                 entries = data[CHILD_LISTS[path]].get(entity_id, [])
             elif path == "map/layers":

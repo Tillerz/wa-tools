@@ -26,6 +26,10 @@ Scripts in this folder support a full article flow:
 
 1. download timeline JSON backups, and all histories (events)
 
+## Canvases, Secrets, Variables
+
+1. download canvas, secret, variable collection and variable JSON backups
+
 
 # Requirements
 
@@ -72,6 +76,9 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Notebook backups | `~/data/alana/notebooks/` |
 | Timeline backups | `~/data/alana/timelines/` |
 | History (event) backups | `~/data/alana/histories/` |
+| Canvas backups | `~/data/alana/canvases/` |
+| Secret backups | `~/data/alana/secrets/` |
+| Variable backups | `~/data/alana/variables/` |
 
 
 # Scripts
@@ -360,7 +367,74 @@ Notes:
 - requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
 
 
-## 6) Find Articles
+## 6) Misc Backup: Canvases, Secrets, Variables
+
+Script:
+
+- Linux/macOS: `python3 backup-misc.py [options]`
+- Windows: `backup-misc.cmd [options]`
+
+Purpose:
+
+- fetches all canvases (whiteboards), secrets, and variable collections with their variables of the world via WA API, with granularity 2
+- stores them in `<world_name>/canvases/`, `<world_name>/secrets/` and `<world_name>/variables/`
+- all of these follow one pattern (list, then one read call per entry), so the script is driven by a small table
+  (`SIMPLE_TYPES` in the script). More types of that pattern need one line there.
+
+Usage:
+
+```bash
+usage: backup-misc.py [-h] [--type TYPE] [--settings FILE]
+```
+
+Parameters:
+
+- `--type <canvases|secrets|variables>` back up this type only. Can be given several times. Default: all three.
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Examples:
+
+```bash
+# everything
+python3 backup-misc.py
+
+# only secrets
+python3 backup-misc.py --type secrets
+```
+
+Folder layout:
+
+| File | Content |
+|---|---|
+| `canvases/all_canvases_<date>.json` | list of all canvases |
+| `canvases/<canvas>_<date>.json` | one canvas |
+| `secrets/all_secrets_<date>.json` | list of all secrets |
+| `secrets/<secret>_<date>.json` | one secret, with its content |
+| `variables/all_variablecollections_<date>.json` | list of all variable collections |
+| `variables/<collection>_<date>.json` | one variable collection |
+| `variables/<collection>_variables_<date>.json` | list of the variables of the collection |
+| `variables/<collection>_variables/<variable>_<date>.json` | one variable, with its key `k` and value `v` |
+
+Notes:
+
+- files are named `<title>_<first 8 characters of the id>`, because titles are not unique. Many variables have
+  no title; those are named by the first 8 characters of the id. The key and the value are inside the file.
+- all list calls return only short entries, so every entry is read with its own call. Your world has 95 variables, so
+  a full run takes about 2 minutes.
+- `<date>` is the entity's last update date if the API returns one, otherwise the start
+  time of the run. A new version file is only written when the content really changed.
+  Every entity carries a copy of its world, and the world's update date changes whenever anything in the world is
+  edited. That one field is ignored when the script decides if something changed (all backup scripts do this,
+  except the article backup).
+- the WA spec writes the variable collection paths with an underscore (`/variable_collection`). The real API has none:
+  `/variablecollection` and `/variablecollection/variables`. The script uses the real ones.
+- one failed API call only skips that one call; the rest is still saved, and all
+  failures are listed at the end. A failed list is never saved as an empty list.
+- requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
+
+
+## 7) Find Articles
 
 Script:
 
@@ -411,7 +485,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 7) Extract Editable Fields
+## 8) Extract Editable Fields
 
 Script:
 
@@ -477,7 +551,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 8) Prepare Deploy Payload for One Article
+## 9) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -510,7 +584,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 9) Tag Manager
+## 10) Tag Manager
 
 Script:
 
@@ -634,7 +708,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 10) Deploy Payloads
+## 11) Deploy Payloads
 
 Script:
 
@@ -672,6 +746,8 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-manuscripts.sh
 ./tests/test-notebooks.sh
 ./tests/test-timelines.sh
+./tests/test-misc.sh
+./tests/test-common.sh
 ./tests/test-maps.sh
 ```
 

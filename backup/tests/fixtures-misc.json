@@ -1,0 +1,107 @@
+{
+  "canvases": [
+    {
+      "id": "kkkkkkkk-0000-0000-0000-000000000001",
+      "title": "Family tree",
+      "slug": null,
+      "state": null,
+      "entityClass": "Canvas",
+      "updateDate": {
+        "date": "2026-02-01 10:00:00.000000"
+      }
+    }
+  ],
+  "secrets": [
+    {
+      "id": "ssssssss-0000-0000-0000-000000000001",
+      "title": "Great Library",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "updateDate": null,
+      "content": "shelves"
+    },
+    {
+      "id": "ssssssss-0000-0000-0000-000000000002",
+      "title": "Great Library",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "updateDate": null,
+      "content": "vault"
+    },
+    {
+      "id": "tttttttt-0000-0000-0000-000000000003",
+      "title": "Dragonborn",
+      "slug": null,
+      "state": null,
+      "entityClass": "Secret",
+      "updateDate": {
+        "date": "2026-03-01 10:00:00.000000"
+      },
+      "content": "scales"
+    }
+  ],
+  "variablecollections": [
+    {
+      "id": "cccccccc-0000-0000-0000-000000000001",
+      "title": "Alana",
+      "slug": null,
+      "state": null,
+      "entityClass": "VariableCollection",
+      "updateDate": null,
+      "prefix": "al"
+    },
+    {
+      "id": "cccccccc-0000-0000-0000-000000000002",
+      "title": "containers",
+      "slug": null,
+      "state": null,
+      "entityClass": "VariableCollection",
+      "updateDate": null
+    },
+    {
+      "id": "cccccccc-0000-0000-0000-000000000003",
+      "title": "Subscriber",
+      "slug": null,
+      "state": null,
+      "entityClass": "VariableCollection",
+      "updateDate": null
+    }
+  ],
+  "collection_variables": {
+    "cccccccc-0000-0000-0000-000000000001": [
+      {
+        "id": "vvvvvvvv-0000-0000-0000-000000000001",
+        "title": "",
+        "slug": null,
+        "state": null,
+        "entityClass": "Variable",
+        "updateDate": null,
+        "k": "color",
+        "v": "red"
+      },
+      {
+        "id": "wwwwwwww-0000-0000-0000-000000000002",
+        "title": "gm",
+        "slug": null,
+        "state": null,
+        "entityClass": "Variable",
+        "updateDate": null,
+        "k": "gm",
+        "v": "Tillerz"
+      }
+    ],
+    "cccccccc-0000-0000-0000-000000000002": [
+      {
+        "id": "xxxxxxxx-0000-0000-0000-000000000003",
+        "title": "hidden",
+        "slug": null,
+        "state": null,
+        "entityClass": "Variable",
+        "updateDate": null
+      }
+    ],
+    "cccccccc-0000-0000-0000-000000000003": []
+  }
+}
