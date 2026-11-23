@@ -38,6 +38,14 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 
 ## Run the tests
 
+All of them, with a summary (GitHub Actions runs this on every push):
+
+```bash
+./tests/run-all.sh
+```
+
+One by one:
+
 ```bash
 ./tests/test-maps.sh
 ./tests/test-articles.sh

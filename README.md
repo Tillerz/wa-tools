@@ -1,5 +1,7 @@
 # Tillerz' World Anvil Backup/Edit/Deploy/Tag/Find Scripts
 
+[![tests](https://github.com/Tillerz/wa-tools/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Tillerz/wa-tools/actions/workflows/tests.yml)
+
 ## Overview
 
 Backup scripts. Each one downloads data of the world via the WA API and saves it as JSON files.
@@ -73,16 +75,13 @@ How long a full run takes (measured on the world with 878 articles, 44 maps with
 
 # Requirements
 
-- Python 3
-- Python packages:
-  - `requests`
-  - `beautifulsoup4`
-  - `lxml`
+- Python 3 (tested with 3.12)
+- Python package `requests` (the only one; no script imports `beautifulsoup4` or `lxml`)
 
-Install example:
+Install:
 
 ```bash
-pip install requests beautifulsoup4 lxml
+pip install -r requirements.txt
 ```
 
 
@@ -961,7 +960,14 @@ Parameters:
 # Tests
 
 `tests/` holds a fake World Anvil API, so the scripts can be tested offline
-without an auth token. Each test is named after what it tests:
+without an auth token. Run all tests, with a summary (about 20 seconds):
+
+```bash
+./tests/run-all.sh
+```
+
+GitHub runs this on every push and pull request (`.github/workflows/tests.yml`); the badge at the top shows the result of the last run on
+`main`. Each test is named after what it tests and can be run alone:
 
 ```bash
 ./tests/test-articles.sh
@@ -1021,6 +1027,9 @@ What changed in these scripts, most recent first. Useful when you update your ow
   thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
 - **Fixed: markers of maps with a denied marker list were not backed up** (see the maps notes).
+- **New: tests run on GitHub on every push** (`.github/workflows/tests.yml`), with a badge at the top of this README. `tests/run-all.sh` runs all
+  tests and prints a summary. `requirements.txt` has the one package that the scripts need (`requests`); the README had also listed
+  `beautifulsoup4` and `lxml`, which no script uses.
 - **Faster: images, categories and secrets are not read again when they did not change.** Their lists have an `updateDate` that is the one of
   the single read (checked on 3,657 images, 96 categories, 10 secrets). A repeated `backup-images.py --all` takes 1 minute instead of 62, categories and
   secrets 1 second instead of 105. `--full` (also in `backup-all.py`) reads everything again. Types without dates in their lists are always read.
