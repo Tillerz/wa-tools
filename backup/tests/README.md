@@ -17,6 +17,8 @@ the rate limit.
 | `test-manuscripts.sh` | smoke test for `backup-manuscripts.py`, including two parts with the same title and a 403 |
 | `fixtures-notebooks.json` | the notebooks the notebook test uses: 3 notebooks (one per case: this world, another world, no world), sections, notes |
 | `test-notebooks.sh` | smoke test for `backup-notebooks.py`, including the world filter, two notes with the same title and a 403 |
+| `fixtures-timelines.json` | the timelines the timeline test uses: 2 timelines, 3 histories |
+| `test-timelines.sh` | smoke test for `backup-timelines.py`, with 60 more generated histories to force paging, two events with the same title and a 403 |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -29,6 +31,7 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-articles.sh
 ./tests/test-manuscripts.sh
 ./tests/test-notebooks.sh
+./tests/test-timelines.sh
 ```
 
 It prints `ALL TESTS PASSED` or lists what went wrong. Everything it downloads
@@ -64,6 +67,7 @@ Both can be turned on:
 | `--forbid map/markers:<uuid>` | the same, but only for one map |
 | `--bulk-markers 130` | adds 130 generated markers to the first map, so paging really runs |
 | `--bulk-articles 60` | adds 60 generated articles, so paging really runs |
+| `--bulk-histories 60` | adds 60 generated histories, so paging really runs |
 
 Example, the exact case that lost markers before:
 

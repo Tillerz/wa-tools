@@ -22,6 +22,10 @@ Scripts in this folder support a full article flow:
 
 1. download notebook JSON backups, with sections and notes
 
+## Timelines
+
+1. download timeline JSON backups, and all histories (events)
+
 
 # Requirements
 
@@ -66,6 +70,8 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 | Map backups | `~/data/alana/maps/` |
 | Manuscript backups | `~/data/alana/manuscripts/` |
 | Notebook backups | `~/data/alana/notebooks/` |
+| Timeline backups | `~/data/alana/timelines/` |
+| History (event) backups | `~/data/alana/histories/` |
 
 
 # Scripts
@@ -305,7 +311,56 @@ Notes:
 - requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
 
 
-## 5) Find Articles
+## 5) Full Timeline Backup
+
+Script:
+
+- Linux/macOS: `python3 backup-timelines.py [options]`
+- Windows: `backup-timelines.cmd [options]`
+
+Purpose:
+
+- fetches all timelines and all histories (the events on the timelines) of the world via WA API, with granularity 2
+- stores timelines in `<world_name>/timelines/` and histories in `<world_name>/histories/`
+
+Usage:
+
+```bash
+usage: backup-timelines.py [-h] [--settings FILE]
+```
+
+Parameters:
+
+- `--settings <file>` use another settings file, for a second world or for the
+  test setup. Each settings file gets its own cookie file.
+
+Folder layout:
+
+| File | Content |
+|---|---|
+| `timelines/all_timelines_<date>.json` | list of all timelines of the world |
+| `timelines/<timeline-slug>/timeline_<date>.json` | timeline details, including its calendar, eras and the list of its histories |
+| `histories/all_histories_<date>.json` | list of all histories of the world |
+| `histories/<history>_<date>.json` | one history |
+
+Notes:
+
+- a history is named `<title>_<first 8 characters of the id>`, because titles are not unique.
+- histories belong to the world, not to a timeline. Each history lists its timelines in
+  the field `timelines`.
+- the timeline list only has short entries, so every timeline is read with its own call. The
+  history list already holds the full data of every history (checked: identical to
+  `GET /history`), so histories need no extra calls. A run takes a few seconds.
+- `<date>` is the entity's last update date if the API returns one, otherwise the start
+  time of the run. A new version file is only written when the content really changed.
+- chronicles are not backed up. WA left them out of its API spec, and `GET /chronicle`
+  only returns metadata.
+- one failed API call only skips that one call; the rest is still saved, and all
+  failures are listed at the end. A failed list is never saved as an empty list.
+- requests are limited like in the other backups (`rate_limit_calls`, `rate_limit_seconds`).
+
+
+## 6) Find Articles
 
 Script:
 
@@ -356,7 +411,7 @@ python3 find.py --state public --type Prose | xargs -I{} python3 extract.py {} -
 ```
 
 
-## 6) Extract Editable Fields
+## 7) Extract Editable Fields
 
 Script:
 
@@ -422,7 +477,7 @@ Examples:
   same, but limited to public Plot articles
 
 
-## 7) Prepare Deploy Payload for One Article
+## 8) Prepare Deploy Payload for One Article
 
 Script:
 
@@ -455,7 +510,7 @@ Parameters:
 - `article_slug` slug folder name under `<world_name>/edit/`
 
 
-## 8) Tag Manager
+## 9) Tag Manager
 
 Script:
 
@@ -579,7 +634,7 @@ Optional filter `--type <entityClass>`:
 - `Vehicle`
 
 
-## 9) Deploy Payloads
+## 10) Deploy Payloads
 
 Script:
 
@@ -616,6 +671,7 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-articles.sh
 ./tests/test-manuscripts.sh
 ./tests/test-notebooks.sh
+./tests/test-timelines.sh
 ./tests/test-maps.sh
 ```
 

@@ -92,6 +92,8 @@ def world_paths(world_name, root_folder=None):
         "maps": root / "maps",
         "manuscripts": root / "manuscripts",
         "notebooks": root / "notebooks",
+        "timelines": root / "timelines",
+        "histories": root / "histories",
     }
 
 

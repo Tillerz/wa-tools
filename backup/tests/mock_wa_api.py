@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 """Fake World Anvil Boromir API, for testing the backup scripts offline.
 
-It answers the map, article, manuscript and notebook endpoints that backup-maps.py,
-backup-articles.py, backup-manuscripts.py and backup-notebooks.py use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
+It answers the map, article, manuscript, notebook and timeline endpoints that
+backup-maps.py, backup-articles.py, backup-manuscripts.py, backup-notebooks.py and
+backup-timelines.py use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
 testable:
 
   --short-pages   hand back one entry less than the requested limit, while more
@@ -11,6 +12,7 @@ testable:
   --forbid        answer 403 for an endpoint, like the real API does for some maps
   --bulk-markers  add N generated markers to the first map, to force paging
   --bulk-articles add N generated articles, to force paging
+  --bulk-histories add N generated histories, to force paging
 
 See README.md in this folder.
 """
@@ -52,9 +54,9 @@ USER_ID = "uuuuuuuu-0000-0000-0000-000000000001"
 
 def load_fixture(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    for key in ("maps", "articles", "manuscripts", "notebooks", "layers", "markergroups", "groupmarkers", "markers",
+    for key in ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories", "layers", "markergroups", "groupmarkers", "markers",
                 *CHILD_LISTS.values()):
-        data.setdefault(key, [] if key in ("maps", "articles", "manuscripts", "notebooks") else {})
+        data.setdefault(key, [] if key in ("maps", "articles", "manuscripts", "notebooks", "timelines", "histories") else {})
     return data
 
 
@@ -74,6 +76,13 @@ def add_bulk_articles(data, count):
                   "updateDate": {"date": "2026-01-01 12:00:00.000000"}}
                  for n in range(count)]
     data["articles"].extend(generated)
+
+
+def add_bulk_histories(data, count):
+    generated = [{"id": f"bulk-history-{n:04d}", "title": f"Bulk event {n:04d}", "slug": None,
+                  "year": 1000 + n, "updateDate": {"date": "2026-01-01 12:00:00.000000"}}
+                 for n in range(count)]
+    data["histories"].extend(generated)
 
 
 def find_entity(groups_of_lists, entity_id):
@@ -129,6 +138,8 @@ def make_handler(data, options):
                 entity = find_entity([data["manuscripts"]], entity_id)
             elif path == "notebook":
                 entity = find_entity([data["notebooks"]], entity_id)
+            elif path == "timeline":
+                entity = find_entity([data["timelines"]], entity_id)
             elif path in CHILD_READS:
                 entity = find_entity(data[CHILD_READS[path]].values(), entity_id)
             elif path == "map":
@@ -163,6 +174,10 @@ def make_handler(data, options):
                 entries = data["manuscripts"]
             elif path == "user/notebooks":
                 entries = data["notebooks"]
+            elif path == "world/timelines":
+                entries = data["timelines"]
+            elif path == "world/histories":
+                entries = data["histories"]
             elif path in CHILD_LISTS:
                 entries = data[CHILD_LISTS[path]].get(entity_id, [])
             elif path == "map/layers":
@@ -197,16 +212,19 @@ parser.add_argument("--bulk-markers", type=int, default=0, metavar="N",
                     help="add N generated markers to the first map, to force paging")
 parser.add_argument("--bulk-articles", type=int, default=0, metavar="N",
                     help="add N generated articles, to force paging")
+parser.add_argument("--bulk-histories", type=int, default=0, metavar="N",
+                    help="add N generated histories, to force paging")
 parser.add_argument("--quiet", action="store_true", help="do not log requests")
 options = parser.parse_args()
 
 fixture = load_fixture(options.data)
 add_bulk_markers(fixture, options.bulk_markers)
 add_bulk_articles(fixture, options.bulk_articles)
+add_bulk_histories(fixture, options.bulk_histories)
 server = HTTPServer(("127.0.0.1", options.port), make_handler(fixture, options))
 print(f"Mock WA API on http://127.0.0.1:{options.port} using {options.data}")
 print(f"  maps: {len(fixture['maps'])}, articles: {len(fixture['articles'])}, "
-      f"manuscripts: {len(fixture['manuscripts'])}, notebooks: {len(fixture['notebooks'])}, short-pages: {options.short_pages}, forbid: {options.forbid or 'none'}")
+      f"manuscripts: {len(fixture['manuscripts'])}, notebooks: {len(fixture['notebooks'])}, timelines: {len(fixture['timelines'])}, short-pages: {options.short_pages}, forbid: {options.forbid or 'none'}")
 try:
     server.serve_forever()
 except KeyboardInterrupt:

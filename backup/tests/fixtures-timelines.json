@@ -1,0 +1,61 @@
+{
+  "timelines": [
+    {
+      "id": "tttttttt-0000-0000-0000-000000000001",
+      "title": "Boresia",
+      "slug": "boresia-timeline",
+      "state": null,
+      "entityClass": "Timeline",
+      "updateDate": {
+        "date": "2025-10-12 12:00:55.000000"
+      }
+    },
+    {
+      "id": "tttttttt-0000-0000-0000-000000000002",
+      "title": "Dashan",
+      "slug": "dashan-timeline",
+      "state": null,
+      "entityClass": "Timeline",
+      "updateDate": null
+    }
+  ],
+  "histories": [
+    {
+      "id": "hhhhhhhh-0000-0000-0000-000000000001",
+      "title": "1st War",
+      "slug": null,
+      "state": null,
+      "entityClass": "History",
+      "updateDate": {
+        "date": "2025-07-12 18:58:08.000000"
+      },
+      "year": 2108,
+      "endingYear": 2115,
+      "content": "war"
+    },
+    {
+      "id": "hhhhhhhh-0000-0000-0000-000000000002",
+      "title": "Founding",
+      "slug": null,
+      "state": null,
+      "entityClass": "History",
+      "updateDate": {
+        "date": "2025-07-07 12:17:49.000000"
+      },
+      "year": 1,
+      "content": "a"
+    },
+    {
+      "id": "hhhhhhhh-0000-0000-0000-000000000003",
+      "title": "Founding",
+      "slug": null,
+      "state": null,
+      "entityClass": "History",
+      "updateDate": {
+        "date": "2025-07-07 12:34:16.000000"
+      },
+      "year": 2,
+      "content": "b"
+    }
+  ]
+}
