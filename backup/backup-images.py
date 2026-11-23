@@ -2,7 +2,7 @@
 version = 'Tillerz Image Metadata Backup'
 
 # --- requirements ----------------------------------------------------
-# see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
+# see https://github.com/Tillerz/wa-tools
 
 import argparse
 import requests

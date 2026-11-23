@@ -26,6 +26,7 @@ the rate limit.
 | `test-images.sh` | smoke test for `backup-images.py`, with 60 more generated images: no amount given, `--max`, `--all`, paging |
 | `fixtures-world.json` | the world the world test uses, with CSS that has Windows line endings |
 | `test-world.sh` | smoke test for `backup-world.py`: the files in `latest/`, line endings, nothing rewritten, a changed file is restored |
+| `test-prepare.sh` | test of `prepare.py` (no fake server): it must use `root_folder` and write nothing next to the script |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -42,6 +43,7 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-misc.sh
 ./tests/test-images.sh
 ./tests/test-world.sh
+./tests/test-prepare.sh
 ./tests/test-common.sh
 ```
 

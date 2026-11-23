@@ -60,13 +60,13 @@ Copy `settings-template.cfg` to `settings.cfg` and fill values:
 - `x_auth_token`
 - `x_application_key`
 - `proxy` (optional; leave empty to use `https://www.worldanvil.com`)
-- `root_folder` (optional; base folder for all data files, e.g. `~/data`)
+- `root_folder` (optional; base folder for all data files, e.g. `~/data`; default: `data/` next to the scripts)
 
-The scripts read `settings.cfg` from this folder (`tools/backup`).
+The scripts read `settings.cfg` from the folder of the scripts.
 
-When `root_folder` is set, all article data is read from and written to
-`<root_folder>/<world_name>/`. Without it, the scripts use `<world_name>/`
-relative to the script folder.
+When `root_folder` is set, all data is read from and written to
+`<root_folder>/<world_name>/`. Without it, the data goes to `data/<world_name>/`
+next to the scripts (git ignores `data/`).
 
 Examples with `root_folder=~/data` and `world_name=alana`:
 
@@ -584,7 +584,7 @@ Notes:
   versioned `world_<date>.json` files, which hold the same texts. A field that is empty gets no file.
 - a new `world_<date>.json` is only written when something changed. These do not count as a change: the world's `updateDate`
   (it changes whenever anything in the world is edited) and the statistics (`countFollowers`, `countComments`,
-  `countArticles`, `countArticleLikes`, `countMaps`, `countTimelines`). The file keeps them, it just does not get a new
+  `countArticles`, `countArticleLikes`, `countMaps`, `countTimelines`) and the page view counter `views`. The file keeps them, it just does not get a new
   version because of them alone.
 - the files are compared as bytes. The CSS of a world can have Windows line endings (`\r\n`), and they are kept as they are.
 - the API has no separate "meta" files of the world. What the world has of that kind is in the one JSON: `jsonMetadata`
@@ -906,6 +906,7 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-misc.sh
 ./tests/test-images.sh
 ./tests/test-world.sh
+./tests/test-prepare.sh
 ./tests/test-common.sh
 ./tests/test-maps.sh
 ```
@@ -917,6 +918,11 @@ See [tests/README.md](tests/README.md).
 
 What changed in these scripts, most recent first. Useful when you update your own scripts or cron jobs.
 
+- **Fixed: `prepare.py` ignored `root_folder`.** It looked for the edited files and the downloaded JSON in `<script folder>/<world_name>/`
+  and wrote the deploy payload there, while `extract.py` and `deploy.py` use `<root_folder>/<world_name>/`. It now uses `root_folder`
+  like all other scripts. `tests/test-prepare.sh` covers it.
+- **Changed: without `root_folder` the data goes to `data/<world_name>/`** next to the scripts (git ignores it), no longer into a
+  `<world_name>/` folder between the scripts.
 - **New: `backup-world.py`** for the world itself (`GET /world`): settings, descriptions, `displayCss`, `displayPanelCss`,
   `descriptionParsed`, `jsonMetadata`.
 - **Fixed: a changed entity could overwrite an older backup file.** The file name has the entity's `updateDate`. If the content
@@ -948,7 +954,7 @@ What changed in these scripts, most recent first. Useful when you update your ow
 
 # Known problems of the WA API
 
-The backups work around these. They are listed for the WA team in `docs/wa-api-issues.md` (the `docs/` folder is kept local,
+The backups work around these. They are listed for the WA team in `api-docs/wa-api-issues.md` (the `api-docs/` folder is kept local,
 it is not in git).
 
 | Endpoint | Problem | What the backup does |

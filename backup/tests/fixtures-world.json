@@ -14,6 +14,7 @@
     "displayCss": "body { color: #123456; }\n.panel { margin: 0; }\n",
     "displayPanelCss": ".side { width: 10px; }\r\n.x { top: 0; }\r\n",
     "displayJs": null,
-    "jsonMetadata": "{\"campaigns\":{\"lastActive\":\"abc\"},\"isGalleriesMigrated\":true}"
+    "jsonMetadata": "{\"campaigns\":{\"lastActive\":\"abc\"},\"isGalleriesMigrated\":true}",
+    "views": 100
   }
 }

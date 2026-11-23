@@ -46,6 +46,27 @@ echo "--- run 2 (nothing changed, so nothing may be written) --------"
 run2=$(python3 backup-world.py --settings tests/settings-test.cfg)
 check "files written on run 2" "Wrote 0 files" "$(echo "$run2" | grep -o 'Wrote 0 files')"
 
+echo "--- run 2b (only counters and updateDate differ from the saved version: no new version) --"
+python3 - "$BASE" <<'PY'
+import glob, json, sys
+path = glob.glob(sys.argv[1] + "/world_*.json")[0]
+data = json.load(open(path))
+data.update({"views": 1, "countFollowers": 999, "countComments": 0, "updateDate": {"date": "2020-01-01 00:00:00.000000"}})
+json.dump(data, open(path, "w"))
+PY
+run2b=$(python3 backup-world.py --settings tests/settings-test.cfg)
+check "counters and updateDate alone write nothing" "Wrote 0 files" "$(echo "$run2b" | grep -o 'Wrote 0 files')"
+check "still one world version" 1 "$(count "$BASE" 'world_*.json')"
+python3 - "$BASE" <<'PY'
+import glob, json, sys
+path = glob.glob(sys.argv[1] + "/world_*.json")[0]
+data = json.load(open(path))
+data["title"] = "An older title"
+json.dump(data, open(path, "w"))
+PY
+run2c=$(python3 backup-world.py --settings tests/settings-test.cfg)
+check "a real change (title) writes a new version" 2 "$(count "$BASE" 'world_*.json')"
+
 echo "--- run 3 (a latest/ file was changed by hand: it is restored) --"
 echo "x" > "$BASE/latest/displayPanelCss.css"
 run3=$(python3 backup-world.py --settings tests/settings-test.cfg)

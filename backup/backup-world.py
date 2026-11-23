@@ -2,7 +2,7 @@
 version = 'Tillerz World Backup'
 
 # --- requirements ----------------------------------------------------
-# see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
+# see https://github.com/Tillerz/wa-tools
 
 import argparse
 import json
@@ -38,8 +38,9 @@ EXTRACT_FIELDS = {
 def comparison_ignores(world):
     """The fields of the world that change without the world being edited: its updateDate
     (the world's own copy changes whenever anything in it is edited) and the statistics
-    (countFollowers, countComments, ...). Alone, they do not make a new version."""
-    return ["updateDate"] + [key for key in world if key.startswith("count")]
+    (countFollowers, countComments, ... and the page view counter "views"). Alone, they do
+    not make a new version."""
+    return ["updateDate", "views"] + [key for key in world if key.startswith("count")]
 
 
 def field_text(name, value):

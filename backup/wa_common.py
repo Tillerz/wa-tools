@@ -79,10 +79,13 @@ def chdir_to_script_dir(file_path):
 
 
 def world_paths(world_name, root_folder=None):
+    """All data folders of a world. Without root_folder the data goes to data/<world_name>/
+    next to the scripts (git ignores data/), not into the world's name as a folder between
+    the scripts."""
     if root_folder:
         root = Path(root_folder).expanduser() / world_name
     else:
-        root = Path(world_name)
+        root = Path(__file__).resolve().parent / "data" / world_name
     return {
         "root": root,
         "json": root / "json",

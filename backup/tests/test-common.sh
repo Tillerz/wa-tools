@@ -67,6 +67,12 @@ check("ignore: a real change writes", True,
 check("ignore: without the option the same change writes", True,
       save_versioned(folder, "w", {**world, "updateDate": "d4", "title": "y"}, "2026-01-04_000000"))
 
+# where the data of a world goes
+from wa_common import world_paths
+check("world_paths: without root_folder below data/ next to the scripts",
+      str(Path("wa_common.py").resolve().parent / "data" / "w" / "json"), str(world_paths("w")["json"]))
+check("world_paths: with root_folder", "/some/where/w/maps", str(world_paths("w", "/some/where")["maps"]))
+
 # block and block folder ids are integers, not uuids
 from wa_common import entity_basename, select_entities, sort_by_id, stable_basename
 check("integer id: stable name", "Wildshape_1285074", stable_basename({"id": 1285074, "title": "Wildshape"}, {}))

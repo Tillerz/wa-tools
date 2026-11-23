@@ -2,7 +2,7 @@
 version = 'Tillerz Full Article Backup'
 
 # --- requirements ----------------------------------------------------
-# see https://github.com/Tillerz/wa-tools/blob/master/backup/
+# see https://github.com/Tillerz/wa-tools
 
 import argparse
 import json

@@ -2,7 +2,7 @@
 version = 'Tillerz Full Notebook Backup'
 
 # --- requirements ----------------------------------------------------
-# see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
+# see https://github.com/Tillerz/wa-tools
 
 import argparse
 import requests

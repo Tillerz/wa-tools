@@ -2,7 +2,7 @@
 version = 'Tillerz Article Extract'
 
 # --- requirements ----------------------------------------------------
-# see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
+# see https://github.com/Tillerz/wa-tools
 
 from argparse import ArgumentParser
 from pathlib import Path
@@ -260,7 +260,7 @@ if args.export:
     try:
         ensure_dir(paths["text-export"])
     except OSError as error:
-        print(f"Cannot create folder {world_name + '/text-export'}: {error}")
+        print(f"Cannot create folder {paths['text-export']}: {error}")
         raise SystemExit(1)
 
 # create the extract folder if it doesn't exist

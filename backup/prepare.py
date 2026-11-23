@@ -22,9 +22,8 @@ def sanitize_slug(slug):
     return sanitize_filename_component(slug)
 
 
-def resolve_source_json(world_name, slug, edit_folder):
+def resolve_source_json(json_folder, slug, edit_folder):
     marker = edit_folder / ".jsonfile"
-    json_folder = world_paths(world_name)["json"]
 
     if marker.is_file():
         marker_value = read_text(marker).strip()
@@ -73,14 +72,14 @@ def word_count(value):
     return len(as_text(value).split())
 
 
-def resolve_article_id(world_name, slug, edit_folder):
+def resolve_article_id(json_folder, slug, edit_folder):
     id_marker = edit_folder / ".uuid"
     if id_marker.is_file():
         article_id = read_text(id_marker).strip()
         if article_id:
             return article_id, id_marker.as_posix()
 
-    source_json_path = resolve_source_json(world_name, slug, edit_folder)
+    source_json_path = resolve_source_json(json_folder, slug, edit_folder)
     jdata = read_json(source_json_path)
     article_id = jdata.get("id")
     if not article_id:
@@ -96,7 +95,7 @@ parser.add_argument("article_slug", help="article slug to prepare from <world>/e
 args = parser.parse_args()
 cfg = load_cfg_or_exit("settings.cfg")
 world_name = cfg["world_name"]
-paths = world_paths(world_name)
+paths = world_paths(world_name, cfg.get("root_folder"))
 slug = sanitize_slug(args.article_slug)
 if slug in {"", ".", ".."}:
     print("Invalid article slug.")
@@ -108,14 +107,14 @@ if not edit_folder.is_dir():
     raise SystemExit(1)
 
 try:
-    source_json_path = resolve_source_json(world_name, slug, edit_folder)
+    source_json_path = resolve_source_json(paths["json"], slug, edit_folder)
     source_json = read_json(source_json_path)
 except (FileNotFoundError, ValueError) as error:
     print(f"Error: {error}")
     raise SystemExit(1)
 
 try:
-    article_id, id_source = resolve_article_id(world_name, slug, edit_folder)
+    article_id, id_source = resolve_article_id(paths["json"], slug, edit_folder)
 except (FileNotFoundError, ValueError) as error:
     print(f"Error: {error}")
     raise SystemExit(1)
