@@ -176,6 +176,8 @@ def make_handler(data, options):
                 entity = find_entity([data["notebooks"]], entity_id)
             elif path == "timeline":
                 entity = find_entity([data["timelines"]], entity_id)
+            elif path == "blocktemplatepart":
+                entity = find_entity([t.get("parts") or [] for t in data["blocktemplates"]], entity_id)
             elif path in WORLD_READS:
                 entity = find_entity([data[WORLD_READS[path]]], entity_id)
             elif path in CHILD_READS:

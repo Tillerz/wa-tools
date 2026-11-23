@@ -30,6 +30,7 @@ the rate limit.
 | `test-prepare.sh` | test of `prepare.py` (no fake server): it must use `root_folder` and write nothing next to the script |
 | `test-tagmgr.sh` | test of `tagmgr.py` (no fake server): all commands, the payloads in the work folder, chained changes |
 | `test-names.sh` | looks for names that a script uses but never defines or imports (like a missing import), in all scripts |
+| `test-all.sh` | test of `backup-all.py`: the fixtures of all other tests are merged into one world, and the whole chain runs: summary, exit codes, `--only`, `--skip`, `--images`, a step that fails |
 | `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
@@ -49,6 +50,7 @@ A test is named after what it tests: `test-<subject>.sh`, with its data in
 ./tests/test-prepare.sh
 ./tests/test-tagmgr.sh
 ./tests/test-names.sh
+./tests/test-all.sh
 ./tests/test-common.sh
 ```
 

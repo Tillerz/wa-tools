@@ -3,7 +3,7 @@
 ## Overview
 
 Backup scripts. Each one downloads data of the world via the WA API and saves it as JSON files.
-Run them one by one, there is no script that runs them all.
+Run them one by one, or all at once with `backup-all.py` (see [Run all backups](#run-all-backups)).
 
 | Script | Backs up | Saved in | Details |
 |---|---|---|---|
@@ -35,6 +35,38 @@ The article scripts support a full article flow:
 All backup scripts have `--settings <file>`, and most have an option to back up only one thing
 (`--map`, `--manuscript`, `--notebook`, `--type`). All of them save a new file only when the data changed.
 
+
+## Run all backups
+
+`backup-all.py` (Windows: `backup-all.cmd`) runs the backup scripts one after the other, shows their output while they run, and prints a summary
+table at the end. A step that fails does not stop the others.
+
+```bash
+usage: backup-all.py [-h] [--only STEPS] [--skip STEPS] [--images N|all] [--settings FILE]
+```
+
+- The steps, in this order: `world`, `articles`, `maps`, `manuscripts`, `notebooks`, `timelines`, `misc` (all of `backup-misc.py`), and
+  `images`.
+- `--only world,articles` runs only these steps, `--skip maps` leaves a step out.
+- **`images` is not part of a normal run.** Add `--images 50` (the first 50 images) or `--images all`. Every image is one call, and the
+  scripts read every image again on every run, so `all` takes about an hour for 3,657 images.
+- `--settings <file>` is passed to every script.
+- `backup-misc.py --parts` (every part of the block templates) is not run by it, it takes hours.
+- Exit code: `0` all fine, `1` at least one step failed, `3` all steps ran, but some API calls failed, so a backup is incomplete. Useful for cron.
+
+How long a full run takes (measured on the world with 878 articles, 44 maps with 1,432 markers, 183 block templates; 5 calls per 5 seconds):
+
+| Step | Time | Why |
+|---|---|---|
+| `world` | 1 s | 1 call |
+| `articles` | 17 s | 18 list calls, only changed articles are read |
+| `maps` | **28 min** | about 1,560 calls: 1,214 markers have no last-changed date, so each is read again on every run |
+| `manuscripts` | 1.5 min | |
+| `notebooks` | 10 s | |
+| `timelines` | 7 s | |
+| `misc` | 7.5 min | 183 block templates, 108 variables, 96 categories, ... |
+| **Total** | **about 38 min** | |
+| `images` (only with `--images all`) | about 62 min | 3,657 images, one call each |
 
 # Requirements
 
@@ -421,13 +453,18 @@ What is bundled in this script:
 Usage:
 
 ```bash
-usage: backup-misc.py [-h] [--type TYPE] [--settings FILE]
+usage: backup-misc.py [-h] [--type TYPE] [--parts] [--template TEMPLATE] [--settings FILE]
 ```
 
 Parameters:
 
 - `--type <canvases|secrets|categories|subscribergroups|blocktemplates|variables|blocks>` back up this type only. Can be given several times.
   Default: all seven (see the table above). The block templates are the slowest part of a full run (about 3 minutes for 183 templates).
+- `--parts` block templates only: also read **every part** of every template with `GET /blocktemplatepart`. This is **slow** (one call per
+  part, about 28,000 parts for 183 templates, about 8 hours), so use it together with `--template`.
+- `--template <id or title>` block templates only: read only this one template. A part of the title is enough, as long as it matches
+  only one template; if it matches several, the script lists them and stops. It implies `--type blocktemplates`. The list of all
+  templates is still saved. An id is a number, for example `2652`.
 - `--settings <file>` use another settings file, for a second world or for the
   test setup.
 
@@ -459,6 +496,7 @@ Folder layout:
 | `subscribergroups/<group>_<date>.json` | one subscriber group, with its `paidsubscribers` |
 | `blocktemplates/all_blocktemplates_<date>.json` | list of all block templates of the user |
 | `blocktemplates/<template>_<date>.json` | one block template, with its `parts` (short references), `formSchema` and `displayStructure` |
+| `blocktemplates/<template>_parts/<part>_<date>.json` | one part of a template, only with `--parts` |
 | `blocks/all_blockfolders_<date>.json` | list of all block folders |
 | `blocks/<folder>_<date>.json` | one block folder |
 | `blocks/<folder>_blocks_<date>.json` | list of the blocks of the folder |
@@ -473,9 +511,11 @@ Notes:
 - **block templates belong to your user, not to a world** (like notebooks, but a template has no `world` field, so there is no
   filter). They are saved in the folder of the configured world. With several worlds, each world folder gets all templates.
 - a block template is saved from `GET /blocktemplate`, which holds the structure (`formSchema`, `displayStructure`) and the
-  parts as short references. The parts are not read one by one: `POST /blocktemplate/blocktemplateparts` always fails (WA bug),
-  and `GET /blocktemplatepart` for every part would be about 28,000 calls (about 8 hours) for 183 templates. The fields of a part
-  (type, label, placeholder) are also in the template's `formSchema`.
+  parts as short references. By default the parts are not read one by one: `POST /blocktemplate/blocktemplateparts` always fails (WA bug),
+  and `GET /blocktemplatepart` for every part would be about 28,000 calls (about 8 hours) for 183 templates. Most fields of a part
+  (type, label, placeholder, description, rows, options) are also in the template's `formSchema`, but **not** the order of the parts
+  (`position`, set in every part), `trackable`, and the part ids. If you need them, use `--parts --template <id>`: the parts go to
+  `blocktemplates/<template>_parts/<part>_<date>.json`. Tried on the template with 98 parts: 98 files in 1m41s.
 - block and block folder ids are integers, not uuids (as the spec says). The file names use them as they are,
   for example `Characters_22629`.
 - the API has no call that lists all blocks of a world. Blocks are listed per block folder, so a block that is in no
@@ -918,6 +958,7 @@ without an auth token. Each test is named after what it tests:
 ./tests/test-prepare.sh
 ./tests/test-tagmgr.sh
 ./tests/test-names.sh
+./tests/test-all.sh
 ./tests/test-common.sh
 ./tests/test-maps.sh
 ```
@@ -959,6 +1000,9 @@ What changed in these scripts, most recent first. Useful when you update your ow
 - **New: `backup-images.py`** for the metadata of the images. It does nothing without `--max N` or `--all`, because a world can have
   thousands of images. `fetch_all_pages` and `backup_children` got a `max_items` option for it.
 - **New: categories and subscriber groups** in `backup-misc.py` (`--type categories`, `--type subscribergroups`).
+- **New: `backup-all.py`** runs all the backup scripts one after the other and prints a summary. See [Run all backups](#run-all-backups).
+- **New: `--parts` and `--template` for the block templates** (`backup-misc.py`). `--parts` reads every part of the templates, `--template` picks one
+  template. `BackupRun.backup_children` got the options `pick` and `on_read` for it.
 - **New: block templates** in `backup-misc.py` (`--type blocktemplates`). `BackupRun.user_id()` reads the user id for the lists that
   belong to the user (the notebook backup uses it too).
 - **New: block folders and blocks** in `backup-misc.py` (`--type blocks`). The shared code now accepts integer ids.

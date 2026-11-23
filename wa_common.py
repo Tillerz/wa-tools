@@ -457,7 +457,7 @@ class BackupRun:
             self.request_headers, self.granularity, max_items))
 
     def backup_children(self, label, list_path, read_path, parent_id, folder, list_name,
-                        skip_if_empty=False, children_folder=None, max_items=None):
+                        skip_if_empty=False, children_folder=None, max_items=None, pick=None, on_read=None):
         """Save the list of the children of one entity, and every child itself.
 
         The list entries are thin: a part or a note in a list has little or no content,
@@ -466,6 +466,9 @@ class BackupRun:
         <folder>/<list_name>/<name>_<date>.json, or to <children_folder>/<name>_<date>.json
         if that is given.
         With max_items, only that many entries are read from the list (and then each of them).
+        With pick, a function that gets the list and returns the entries to read: the list file still
+        has all entries, but only the picked ones are read. With on_read, a function that is called
+        with (list entry, file base name, the data that was read) after every successful read.
         With skip_if_empty, an empty list that was never saved before is not written
         and not printed (used for the beats: most parts have none).
         Returns [(list entry, file base name)], for the caller to go on with."""
@@ -477,14 +480,17 @@ class BackupRun:
             print(f"    {list_name}: {len(entries)}")
         result = []
         used = {}
-        for entry in sort_by_id(entries):
+        names = {entry["id"]: stable_basename(entry, used) for entry in sort_by_id(entries) if entry.get("id")}
+        for entry in sort_by_id(pick(entries) if pick else entries):
             if not entry.get("id"):
                 continue
-            base = stable_basename(entry, used)
+            base = names[entry["id"]]
             data = self.read(f"{label}: {list_name} {base}", read_path, entry["id"])
             if data is not None:
                 self.save(children_folder or folder / list_name, base, data,
                           entity_timestamp(data, self.run_stamp))
+                if on_read:
+                    on_read(entry, base, data)
             result.append((entry, base))
         return result
 

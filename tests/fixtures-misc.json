@@ -179,7 +179,9 @@
           "slug": null,
           "state": null,
           "entityClass": "BlockTemplatePart",
-          "updateDate": null
+          "updateDate": null,
+          "type": "string",
+          "placeholder": "Fighter or Fighter / Cleric"
         },
         {
           "id": 63610,
@@ -187,7 +189,9 @@
           "slug": null,
           "state": null,
           "entityClass": "BlockTemplatePart",
-          "updateDate": null
+          "updateDate": null,
+          "type": "number",
+          "placeholder": "1 / 3"
         }
       ]
     },

@@ -80,6 +80,8 @@ check "template keeps its parts" 1 "$(grep -l 'Level' "$BASE"/blocktemplates/265
 check "403 for a template was reported" 1 "$(echo "$run1" | grep -c 'blocktemplates Locked_2655 failed')"
 check "failed template not saved" 0 "$(count "$BASE/blocktemplates" 'Locked_*.json')"
 
+check "no --parts: no part folders" 0 "$(find "$BASE/blocktemplates" -maxdepth 1 -name '*_parts' | wc -l)"
+
 # categories and subscriber groups
 check "category list saved" 1 "$(count "$BASE/categories" 'all_categories_*.json')"
 check "3 categories saved" 3 "$(find "$BASE/categories" -maxdepth 1 -type f ! -name 'all_*' | wc -l)"
@@ -99,6 +101,31 @@ rm -rf "$OUT"
 run3=$(python3 backup-misc.py --settings tests/settings-test.cfg --type secrets)
 check "secrets saved" 1 "$(count "$BASE/secrets" 'all_secrets_*.json')"
 check "other types skipped" 0 "$(ls -d "$BASE"/canvases "$BASE"/variables "$BASE"/blocks "$BASE"/blocktemplates "$BASE"/categories "$BASE"/subscribergroups 2>/dev/null | wc -l)"
+
+echo "--- run 4 (one block template, with its parts) ---------------"
+rm -rf "$OUT"
+run4=$(python3 backup-misc.py --settings tests/settings-test.cfg --template 2652 --parts)
+echo "$run4" | grep -E "BLOCKTEMPLATES|_parts"
+check "--template implies the block templates only" 0 "$(ls -d "$BASE"/secrets "$BASE"/canvases "$BASE"/variables 2>/dev/null | wc -l)"
+check "the template list has all templates" 4 "$(python3 -c "import json,glob;print(len(json.load(open(glob.glob('$BASE/blocktemplates/all_blocktemplates_*.json')[0]))))")"
+check "only the picked template was read" 1 "$(find "$BASE/blocktemplates" -maxdepth 1 -type f ! -name 'all_*' | wc -l)"
+check "both parts saved" 2 "$(find "$BASE/blocktemplates/2652_parts" -type f 2>/dev/null | wc -l)"
+check "a part keeps its own data" 1 "$(grep -l 'Fighter or Fighter / Cleric' "$BASE"/blocktemplates/2652_parts/Class_63609_* 2>/dev/null | wc -l)"
+
+echo "--- run 5 (the same again: nothing changed, nothing written) ---"
+run5=$(python3 backup-misc.py --settings tests/settings-test.cfg --template 2652 --parts)
+check "files written on run 5" "Wrote 0 files" "$(echo "$run5" | grep -o 'Wrote 0 files')"
+
+echo "--- run 6 (--template with two matches: it must stop) ---------"
+rm -rf "$OUT"
+run6=$(python3 backup-misc.py --settings tests/settings-test.cfg --template Adversary 2>&1); code=$?
+check "exit code is an error" 1 "$code"
+check "both matches are listed" 1 "$(echo "$run6" | grep -c "matches 2 block templates")"
+check "no template was read" 0 "$(find "$BASE/blocktemplates" -maxdepth 1 -type f ! -name 'all_*' 2>/dev/null | wc -l)"
+
+echo "--- run 7 (--template together with another --type is an error) --"
+python3 backup-misc.py --settings tests/settings-test.cfg --template 2652 --type secrets >/dev/null 2>&1
+check "exit code of the wrong combination" 2 "$?"
 
 echo "---------------------------------------------------------------"
 if [ "$fail" = 0 ]; then echo "ALL TESTS PASSED"; else echo "TESTS FAILED"; fi

@@ -12,9 +12,13 @@ from wa_common import (
     build_request_headers,
     chdir_to_script_dir,
     ensure_dir,
+    entity_timestamp,
     load_cfg_or_exit,
     rate_limiter_from_cfg,
     safe_fetch,
+    select_one_or_exit,
+    sort_by_id,
+    stable_basename,
     world_paths_from_cfg,
 )
 
@@ -50,10 +54,18 @@ ALL_TYPES = list(SIMPLE_TYPES) + list(NESTED_TYPES)
 parser = argparse.ArgumentParser(description="Backup canvases, secrets, categories, subscriber groups, block templates, variable collections with their variables, and block folders with their blocks.")
 parser.add_argument("--type", choices=ALL_TYPES, action="append", metavar="TYPE",
                     help=f"back up this type only; can be given several times (default: all of {', '.join(ALL_TYPES)})")
+parser.add_argument("--parts", action="store_true",
+                    help="block templates: also read every part of every template with GET /blocktemplatepart. "
+                         "This is slow: one call per part (about 28,000 parts for 183 templates, about 8 hours). "
+                         "Use it with --template.")
+parser.add_argument("--template", metavar="TEMPLATE",
+                    help="block templates: read only this one, given as its id or (part of) its title. Implies --type blocktemplates.")
 parser.add_argument("--settings", default="settings.cfg", metavar="FILE",
                     help="settings file to use (default: settings.cfg)")
 args = parser.parse_args()
-selected_types = args.type or ALL_TYPES
+if args.template and args.type and "blocktemplates" not in args.type:
+    parser.error("--template belongs to --type blocktemplates")
+selected_types = args.type or (["blocktemplates"] if args.template else ALL_TYPES)
 
 # main
 chdir_to_script_dir(__file__)
@@ -87,8 +99,28 @@ with requests.Session() as session:
             if owner_id is None:
                 continue
             # list in <type>/all_<type>_<date>.json, entries in <type>/<name>_<date>.json
+            extra = {}
+            templates = []   # (file name, parts) of the block templates that were read, for --parts
+            if type_name == "blocktemplates":
+                if args.template:
+                    extra["pick"] = lambda entries: select_one_or_exit(entries, args.template, "block template")
+                if args.parts:
+                    extra["on_read"] = lambda entry, base, data: templates.append((base, data.get("parts") or []))
             run.backup_children(type_name, list_path, read_path, owner_id, folder,
-                                f"all_{type_name}", children_folder=folder)
+                                f"all_{type_name}", children_folder=folder, **extra)
+            # the parts of each template: <type>/<template>_parts/<part>_<date>.json
+            for template_base, parts in templates:
+                parts_folder = folder / f"{template_base}_parts"
+                used = {}
+                for part in sort_by_id(parts):
+                    if not part.get("id"):
+                        continue
+                    part_base = stable_basename(part, used)
+                    data = run.read(f"{type_name} {template_base}: part {part_base}", "blocktemplatepart", part["id"])
+                    if data is not None:
+                        run.save(parts_folder, part_base, data, entity_timestamp(data, run.run_stamp))
+                if parts:
+                    print(f"    {template_base}_parts: {len(parts)}")
             continue
 
         # the parents (variable collections, block folders), and the children of each parent
