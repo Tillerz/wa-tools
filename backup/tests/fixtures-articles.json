@@ -1,0 +1,31 @@
+{
+  "articles": [
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "title": "Harbour Master",
+      "slug": "harbour-master",
+      "state": "public",
+      "entityClass": "Person",
+      "wordcount": 120,
+      "updateDate": {"date": "2026-01-10 08:15:00.000000"}
+    },
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000002",
+      "title": "Old Lighthouse",
+      "slug": "old-lighthouse",
+      "state": "draft",
+      "entityClass": "Landmark",
+      "wordcount": 80,
+      "updateDate": {"date": "2026-02-01 18:00:00.000000"}
+    },
+    {
+      "id": "aaaaaaaa-0000-0000-0000-000000000003",
+      "title": "Empty Stub",
+      "slug": "empty-stub",
+      "state": "wip",
+      "entityClass": "Article",
+      "wordcount": 0,
+      "updateDate": {"date": "2026-03-05 09:30:00.000000"}
+    }
+  ]
+}

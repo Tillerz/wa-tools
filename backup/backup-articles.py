@@ -2,26 +2,25 @@
 version = 'Tillerz Full Article Backup'
 
 # --- requirements ----------------------------------------------------
-# see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
+# see https://github.com/Tillerz/wa-tools/blob/master/backup/
 
 import argparse
-from collections import deque
 import json
-from pathlib import Path
 import requests
-from requests.utils import dict_from_cookiejar
-from requests.utils import cookiejar_from_dict
-from sys import platform
 import time
 from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
+    cookie_file_for,
     ensure_dir,
+    fetch_all_pages,
     fetch_article,
-    fetch_article_list_page,
     load_cfg_or_exit,
+    load_cookies,
+    rate_limiter_from_cfg,
     read_text,
+    save_cookies,
     world_paths,
     write_json,
 )
@@ -34,10 +33,7 @@ args = parser.parse_args()
 # main
 chdir_to_script_dir(__file__)
 
-# a second settings file gets its own cookie jar, so a test run cannot overwrite
-# the cookies that belong to the real world
-settings_stem = Path(args.settings).stem
-file_cookies = "cookies.json" if settings_stem == "settings" else f"cookies-{settings_stem}.json"
+file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -52,60 +48,30 @@ file_all_articles_new = root_folder / "all_articles_new.json"
 file_all_articles_old = root_folder / "all_articles_old.json"
 file_all_articles = root_folder / "all_articles.json"
 
-# create a backup folder if it doesn't exist
+# create the backup folders if they don't exist
 try:
-    ensure_dir(root_folder)
+    ensure_dir(root_folder_json)
 except OSError as error:
-    print(f"Cannot create folder {world_name}: {error}")
+    print(f"Cannot create folder {root_folder_json}: {error}")
     raise SystemExit(1)
 
 # --- action starts here ---------------------------------------------------
 
 # create a session
 with requests.Session() as session:
-    if Path(file_cookies).is_file():
-        # load the saved cookies
-        cookies = json.loads(read_text(file_cookies))
-        # turn the object into a a cookie jar
-        cookies = cookiejar_from_dict(cookies)
-        # attach cookies to session
-        session.cookies.update(cookies)
+    load_cookies(session, file_cookies)
 
     # global timer
     loop_start = time.monotonic()
 
-    # read article list
-    pagesize = 50
-    all_articles_new = []
+    limiter = rate_limiter_from_cfg(cfg)
+
+    # read article list, with granularity 1: the entry list with update dates
     try:
-        offset = 0
-        request_times = deque(maxlen=5)
-        # fetch <pagesize> article, add them to the list and then increase offset for next <pagesize> articles
-        counter = 0
-        while True:
-            if len(request_times) == request_times.maxlen:
-                elapsed = time.monotonic() - request_times[0]
-                if elapsed < 5:
-                    time.sleep(5 - elapsed)
-            request_times.append(time.monotonic())
-            jdata = fetch_article_list_page(
-                session,
-                api_url,
-                world_id,
-                request_headers,
-                limit=pagesize,
-                offset=offset,
-            )
-            if jdata.get("success") is True:
-                if jdata.get("entities") == []:
-                    break
-                else:
-                    all_articles_new.extend(jdata.get("entities", []))
-                    offset += pagesize
-                    print(f"article list offset {counter} read ({counter * pagesize}+)")
-                    counter += 1
-            else:
-                break
+        all_articles_new = fetch_all_pages(
+            limiter, session, api_url, "world/articles", world_id, request_headers,
+            granularity=1,
+        )
     except requests.RequestException as e:
         print(f"Error fetching article list: {e}")
         raise SystemExit(1)
@@ -143,15 +109,10 @@ with requests.Session() as session:
             unchanged_count += 1
     # debug: Path("new_articles.json").write_text(json.dumps(new_articles, separators=(",", ":")))
 
-    request_times = deque(maxlen=5)
     # loop over all new or changed articles
     remaining = len(new_articles)
     for article_id in new_articles:
-        if len(request_times) == request_times.maxlen:
-            elapsed = time.monotonic() - request_times[0]
-            if elapsed < 5:
-                time.sleep(5 - elapsed)
-        request_times.append(time.monotonic())
+        limiter.wait()
         # fetch article via API with granularity 3, means full article with all fields
         try:
             jdata = fetch_article(
@@ -233,11 +194,4 @@ with requests.Session() as session:
     minutes, seconds = divmod(elapsed, 60)
     print(f"Elapsed time: {minutes}m {seconds:02d}s")
 
-    # turn cookiejar into dict and save it
-    cookies = dict_from_cookiejar(session.cookies)
-    if Path(file_cookies).is_file():
-        if session.cookies:
-            cookies = dict_from_cookiejar(session.cookies)
-        else:
-            cookies = {}
-    write_json(file_cookies, cookies)
+    save_cookies(session, file_cookies)

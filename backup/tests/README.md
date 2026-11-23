@@ -12,14 +12,17 @@ the rate limit.
 | `settings-test.cfg` | settings that point at the fake server, shared by all tests |
 | `fixtures-maps.json` | the world the map test uses: 3 maps, layers, marker groups, markers |
 | `test-maps.sh` | smoke test for `backup-maps.py` |
+| `fixtures-articles.json` | the articles the article test uses: 3 articles |
+| `test-articles.sh` | smoke test for `backup-articles.py`, with 60 more generated articles to force paging |
 
 A test is named after what it tests: `test-<subject>.sh`, with its data in
 `fixtures-<subject>.json`.
 
-## Run the map test
+## Run the tests
 
 ```bash
 ./tests/test-maps.sh
+./tests/test-articles.sh
 ```
 
 It prints `ALL TESTS PASSED` or lists what went wrong. Everything it downloads
@@ -54,6 +57,7 @@ Both can be turned on:
 | `--forbid map/markers` | answers 403, like a map you are not allowed to read |
 | `--forbid map/markers:<uuid>` | the same, but only for one map |
 | `--bulk-markers 130` | adds 130 generated markers to the first map, so paging really runs |
+| `--bulk-articles 60` | adds 60 generated articles, so paging really runs |
 
 Example, the exact case that lost markers before:
 

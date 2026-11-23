@@ -5,160 +5,30 @@ version = 'Tillerz Full Map Backup'
 # see https://github.com/Tillerz/worldanvil-templates/blob/master/tools/backup/
 
 import argparse
-from collections import deque
-from glob import escape as glob_escape
-import json
-from pathlib import Path
 import requests
-from requests.utils import dict_from_cookiejar
-from requests.utils import cookiejar_from_dict
 import time
 from wa_common import (
     build_api_url,
     build_request_headers,
     chdir_to_script_dir,
+    cookie_file_for,
     ensure_dir,
+    entity_basename,
+    entity_timestamp,
+    fetch_all_pages,
     fetch_entity,
-    fetch_entity_list_page,
     load_cfg_or_exit,
-    read_text,
-    sanitize_filename_component,
+    load_cookies,
+    rate_limiter_from_cfg,
+    safe_fetch,
+    save_cookies,
+    save_versioned,
+    sort_by_id,
+    warnings,
     world_paths,
-    write_json,
 )
 
-PAGESIZE = 50
 GRANULARITY = 2
-# matches the "_YYYY-MM-DD_HHMMSS.json" suffix of a saved version, and nothing else
-STAMP_GLOB = "_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].json"
-
-# labels of API calls that failed, printed as a summary at the end
-warnings = []
-
-
-class RateLimiter:
-    """Allow at most <calls> requests per <seconds> seconds."""
-
-    def __init__(self, calls=5, seconds=5):
-        self.seconds = seconds
-        self.times = deque(maxlen=calls)
-
-    def wait(self):
-        if len(self.times) == self.times.maxlen:
-            elapsed = time.monotonic() - self.times[0]
-            if elapsed < self.seconds:
-                time.sleep(self.seconds - elapsed)
-        self.times.append(time.monotonic())
-
-
-def entity_timestamp(data, fallback):
-    raw = data.get("updateDate")
-    if isinstance(raw, dict):
-        raw = raw.get("date")
-    if not isinstance(raw, str) or raw == "":
-        return fallback
-    return raw.replace(".000000", "").replace(" ", "_").replace(":", "")
-
-
-def entity_basename(data, used):
-    base = ""
-    for key in ("slug", "title", "name"):
-        value = data.get(key)
-        if isinstance(value, str) and value.strip() != "":
-            base = sanitize_filename_component(value.strip())
-            if base != "":
-                break
-    entity_id = data.get("id") or ""
-    if base == "":
-        base = sanitize_filename_component(entity_id) or "unnamed"
-    if used.get(base, entity_id) != entity_id:
-        base = base + "_" + entity_id[:8]
-    used[base] = entity_id
-    return base
-
-
-def newest_version(folder, base):
-    files = sorted(Path(folder).glob(glob_escape(base) + STAMP_GLOB))
-    return files[-1] if files else None
-
-
-def save_versioned(folder, base, data, timestamp):
-    """Write <base>_<timestamp>.json, unless the newest saved version is identical."""
-    ensure_dir(folder)
-    previous = newest_version(folder, base)
-    if previous is not None:
-        try:
-            if json.loads(read_text(previous)) == data:
-                return False
-        except (OSError, ValueError):
-            pass
-    write_json(Path(folder) / f"{base}_{timestamp}.json", data)
-    return True
-
-
-def entities_of(jdata):
-    if isinstance(jdata, list):
-        return jdata
-    if isinstance(jdata, dict):
-        if jdata.get("success") is False:
-            return []
-        entities = jdata.get("entities")
-        if isinstance(entities, list):
-            return entities
-    return []
-
-
-def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers):
-    """Read a list endpoint page by page.
-
-    The API can answer with fewer entries than the requested limit and still have
-    more pages behind it, so a short page is not the end of the list. Only an empty
-    page, or a page without a single new id, stops the loop.
-
-    The next offset counts the entries that really came back, not the page size.
-    Stepping by the page size would jump over everything the short page left out.
-    """
-    items = []
-    seen = set()
-    offset = 0
-    while True:
-        limiter.wait()
-        jdata = fetch_entity_list_page(
-            session,
-            api_url,
-            path,
-            entity_id,
-            request_headers,
-            granularity=GRANULARITY,
-            limit=PAGESIZE,
-            offset=offset,
-        )
-        page = entities_of(jdata)
-        if not page:
-            break
-        added = 0
-        for entry in page:
-            entry_id = entry.get("id")
-            if entry_id is not None:
-                if entry_id in seen:
-                    continue
-                seen.add(entry_id)
-            items.append(entry)
-            added += 1
-        if added == 0:
-            break
-        offset += len(page)
-    return items
-
-
-def safe_fetch(label, default, action):
-    """Run one API call. On an API error, warn and carry on with the rest of the map."""
-    try:
-        return action()
-    except requests.RequestException as error:
-        print(f"    WARNING: {label} failed: {error}")
-        warnings.append(label)
-        return default
 
 
 def select_maps(all_maps, query):
@@ -172,10 +42,6 @@ def select_maps(all_maps, query):
     if by_title:
         return by_title
     return [m for m in all_maps if wanted in (m.get("title") or "").lower()]
-
-
-def sort_by_id(entities):
-    return sorted(entities, key=lambda e: e.get("id") or "")
 
 
 parser = argparse.ArgumentParser(description="Backup all maps of a world, with layers, marker groups and markers.")
@@ -192,10 +58,7 @@ args = parser.parse_args()
 # main
 chdir_to_script_dir(__file__)
 
-# a second settings file gets its own cookie jar, so a test run cannot overwrite
-# the cookies that belong to the real world
-settings_stem = Path(args.settings).stem
-file_cookies = "cookies.json" if settings_stem == "settings" else f"cookies-{settings_stem}.json"
+file_cookies = cookie_file_for(args.settings)
 cfg = load_cfg_or_exit(args.settings)
 world_name = cfg['world_name']
 world_id = cfg['world_id']
@@ -213,19 +76,17 @@ except OSError as error:
 # --- action starts here ---------------------------------------------------
 
 with requests.Session() as session:
-    if Path(file_cookies).is_file():
-        session.cookies.update(cookiejar_from_dict(json.loads(read_text(file_cookies))))
+    load_cookies(session, file_cookies)
 
     loop_start = time.monotonic()
     run_stamp = time.strftime("%Y-%m-%d_%H%M%S")
-    limiter = RateLimiter(int(cfg.get("rate_limit_calls") or 5),
-                          int(cfg.get("rate_limit_seconds") or 5))
+    limiter = rate_limiter_from_cfg(cfg)
     written = 0
     marker_calls = 0
 
     # 1) list all maps of the world
     try:
-        all_maps = fetch_all_pages(limiter, session, api_url, "world/maps", world_id, request_headers)
+        all_maps = fetch_all_pages(limiter, session, api_url, "world/maps", world_id, request_headers, GRANULARITY)
     except requests.RequestException as e:
         print(f"Error fetching map list: {e}")
         raise SystemExit(1)
@@ -273,7 +134,7 @@ with requests.Session() as session:
         # 3) layers
         layers = safe_fetch(
             f"{map_base}: layer list", [],
-            lambda: fetch_all_pages(limiter, session, api_url, "map/layers", map_id, request_headers))
+            lambda: fetch_all_pages(limiter, session, api_url, "map/layers", map_id, request_headers, GRANULARITY))
         if save_versioned(map_folder, "layers", layers, run_stamp):
             written += 1
         layer_names = {}
@@ -286,7 +147,7 @@ with requests.Session() as session:
         # 4) marker groups
         groups = safe_fetch(
             f"{map_base}: marker group list", [],
-            lambda: fetch_all_pages(limiter, session, api_url, "map/markergroups", map_id, request_headers))
+            lambda: fetch_all_pages(limiter, session, api_url, "map/markergroups", map_id, request_headers, GRANULARITY))
         if save_versioned(map_folder, "markergroups", groups, run_stamp):
             written += 1
 
@@ -310,7 +171,7 @@ with requests.Session() as session:
             group_markers = safe_fetch(
                 f"{map_base}: markers of group {base}", [],
                 lambda gid=group_id: fetch_all_pages(limiter, session, api_url,
-                                                     "markergroup/markers", gid, request_headers))
+                                                     "markergroup/markers", gid, request_headers, GRANULARITY))
             if save_versioned(map_folder / "markergroups", base + "_markers", group_markers, run_stamp):
                 written += 1
             for marker in group_markers:
@@ -321,7 +182,7 @@ with requests.Session() as session:
         # 7) markers of the map
         markers = safe_fetch(
             f"{map_base}: marker list", [],
-            lambda: fetch_all_pages(limiter, session, api_url, "map/markers", map_id, request_headers))
+            lambda: fetch_all_pages(limiter, session, api_url, "map/markers", map_id, request_headers, GRANULARITY))
         if save_versioned(map_folder, "markers", markers, run_stamp):
             written += 1
         for marker in markers:
@@ -366,5 +227,4 @@ with requests.Session() as session:
     minutes, seconds = divmod(elapsed, 60)
     print(f"Elapsed time: {minutes}m {seconds:02d}s")
 
-    cookies = dict_from_cookiejar(session.cookies) if session.cookies else {}
-    write_json(file_cookies, cookies)
+    save_cookies(session, file_cookies)

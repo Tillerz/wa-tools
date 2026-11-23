@@ -60,7 +60,7 @@ Examples with `root_folder=~/data` and `world_name=alana`:
 
 # Scripts
 
-## 1) Full Backup
+## 1) Article Backup
 
 Script:
 
@@ -71,6 +71,8 @@ Purpose:
 
 - fetches all articles via WA API
 - stores full article JSON in `<world_name>/json/`
+- downloads only new or changed articles
+- requests are limited like in the map backup (`rate_limit_calls`, `rate_limit_seconds` in `settings.cfg`)
 
 Usage:
 
@@ -473,6 +475,7 @@ Parameters:
 without an auth token. Each test is named after what it tests:
 
 ```bash
+./tests/test-articles.sh
 ./tests/test-maps.sh
 ```
 

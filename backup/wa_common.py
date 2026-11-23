@@ -1,12 +1,22 @@
 #!/usr/bin/python3
 
+from collections import deque
 from datetime import datetime
+from glob import escape as glob_escape
 import json
 import os
 from pathlib import Path
 import requests
+from requests.utils import cookiejar_from_dict, dict_from_cookiejar
+import time
 
 TEXT_ENCODING = "utf-8"
+PAGESIZE = 50
+# matches the "_YYYY-MM-DD_HHMMSS.json" suffix of a saved version, and nothing else
+STAMP_GLOB = "_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9].json"
+
+# labels of API calls that failed, printed as a summary at the end
+warnings = []
 
 
 def read_text(path):
@@ -139,14 +149,6 @@ def build_api_url(cfg):
     return base_url + "/api/external/boromir/"
 
 
-def fetch_article_list_page(session, api_url, world_id, request_headers, limit=50, offset=0):
-    endpoint = api_url + "world/articles?id=" + world_id + "&granularity=1"
-    payload = {"limit": limit, "offset": offset}
-    response = session.post(endpoint, json=payload, headers=request_headers)
-    response.raise_for_status()
-    return response.json()
-
-
 def fetch_article(session, api_url, article_id, request_headers, granularity=3):
     endpoint = api_url + "article?id=" + article_id + "&granularity=" + str(granularity)
     response = session.get(endpoint, headers=request_headers)
@@ -185,6 +187,156 @@ def fetch_entity_list_page(
     response = session.post(endpoint, json=payload, headers=request_headers)
     response.raise_for_status()
     return response.json()
+
+
+class RateLimiter:
+    """Allow at most <calls> requests per <seconds> seconds."""
+
+    def __init__(self, calls=5, seconds=5):
+        self.seconds = seconds
+        self.times = deque(maxlen=calls)
+
+    def wait(self):
+        if len(self.times) == self.times.maxlen:
+            elapsed = time.monotonic() - self.times[0]
+            if elapsed < self.seconds:
+                time.sleep(self.seconds - elapsed)
+        self.times.append(time.monotonic())
+
+
+def rate_limiter_from_cfg(cfg):
+    return RateLimiter(int(cfg.get("rate_limit_calls") or 5),
+                       int(cfg.get("rate_limit_seconds") or 5))
+
+
+def cookie_file_for(settings_path):
+    """A second settings file gets its own cookie jar, so a test run cannot
+    overwrite the cookies that belong to the real world."""
+    stem = Path(settings_path).stem
+    return "cookies.json" if stem == "settings" else f"cookies-{stem}.json"
+
+
+def load_cookies(session, cookie_file):
+    if Path(cookie_file).is_file():
+        session.cookies.update(cookiejar_from_dict(read_json(cookie_file)))
+
+
+def save_cookies(session, cookie_file):
+    write_json(cookie_file, dict_from_cookiejar(session.cookies) if session.cookies else {})
+
+
+def entity_timestamp(data, fallback):
+    raw = data.get("updateDate")
+    if isinstance(raw, dict):
+        raw = raw.get("date")
+    if not isinstance(raw, str) or raw == "":
+        return fallback
+    return raw.replace(".000000", "").replace(" ", "_").replace(":", "")
+
+
+def entity_basename(data, used):
+    base = ""
+    for key in ("slug", "title", "name"):
+        value = data.get(key)
+        if isinstance(value, str) and value.strip() != "":
+            base = sanitize_filename_component(value.strip())
+            if base != "":
+                break
+    entity_id = data.get("id") or ""
+    if base == "":
+        base = sanitize_filename_component(entity_id) or "unnamed"
+    if used.get(base, entity_id) != entity_id:
+        base = base + "_" + entity_id[:8]
+    used[base] = entity_id
+    return base
+
+
+def newest_version(folder, base):
+    files = sorted(Path(folder).glob(glob_escape(base) + STAMP_GLOB))
+    return files[-1] if files else None
+
+
+def save_versioned(folder, base, data, timestamp):
+    """Write <base>_<timestamp>.json, unless the newest saved version is identical."""
+    ensure_dir(folder)
+    previous = newest_version(folder, base)
+    if previous is not None:
+        try:
+            if read_json(previous) == data:
+                return False
+        except (OSError, ValueError):
+            pass
+    write_json(Path(folder) / f"{base}_{timestamp}.json", data)
+    return True
+
+
+def entities_of(jdata):
+    if isinstance(jdata, list):
+        return jdata
+    if isinstance(jdata, dict):
+        if jdata.get("success") is False:
+            return []
+        entities = jdata.get("entities")
+        if isinstance(entities, list):
+            return entities
+    return []
+
+
+def fetch_all_pages(limiter, session, api_url, path, entity_id, request_headers, granularity=2):
+    """Read a list endpoint page by page.
+
+    The API can answer with fewer entries than the requested limit and still have
+    more pages behind it, so a short page is not the end of the list. Only an empty
+    page, or a page without a single new id, stops the loop.
+
+    The next offset counts the entries that really came back, not the page size.
+    Stepping by the page size would jump over everything the short page left out.
+    """
+    items = []
+    seen = set()
+    offset = 0
+    while True:
+        limiter.wait()
+        jdata = fetch_entity_list_page(
+            session,
+            api_url,
+            path,
+            entity_id,
+            request_headers,
+            granularity=granularity,
+            limit=PAGESIZE,
+            offset=offset,
+        )
+        page = entities_of(jdata)
+        if not page:
+            break
+        added = 0
+        for entry in page:
+            entry_id = entry.get("id")
+            if entry_id is not None:
+                if entry_id in seen:
+                    continue
+                seen.add(entry_id)
+            items.append(entry)
+            added += 1
+        if added == 0:
+            break
+        offset += len(page)
+    return items
+
+
+def safe_fetch(label, default, action):
+    """Run one API call. On an API error, warn and carry on with the rest of the work."""
+    try:
+        return action()
+    except requests.RequestException as error:
+        print(f"    WARNING: {label} failed: {error}")
+        warnings.append(label)
+        return default
+
+
+def sort_by_id(entities):
+    return sorted(entities, key=lambda e: e.get("id") or "")
 
 
 writing_fields = (

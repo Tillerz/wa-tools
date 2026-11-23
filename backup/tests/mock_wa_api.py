@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """Fake World Anvil Boromir API, for testing the backup scripts offline.
 
-It answers the map endpoints that backup-maps.py uses, reading its data from a
-JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
+It answers the map and article endpoints that backup-maps.py and
+backup-articles.py use, reading its data from a JSON fixture file. It can also misbehave on purpose, so the tricky cases stay
 testable:
 
   --short-pages   hand back one entry less than the requested limit, while more
@@ -10,6 +10,7 @@ testable:
                   first version of backup-maps.py stop reading too early.
   --forbid        answer 403 for an endpoint, like the real API does for some maps
   --bulk-markers  add N generated markers to the first map, to force paging
+  --bulk-articles add N generated articles, to force paging
 
 See README.md in this folder.
 """
@@ -24,8 +25,8 @@ DEFAULT_LIMIT = 50
 
 def load_fixture(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    for key in ("maps", "layers", "markergroups", "groupmarkers", "markers"):
-        data.setdefault(key, [] if key == "maps" else {})
+    for key in ("maps", "articles", "layers", "markergroups", "groupmarkers", "markers"):
+        data.setdefault(key, [] if key in ("maps", "articles") else {})
     return data
 
 
@@ -37,6 +38,14 @@ def add_bulk_markers(data, count):
                   "updateDate": {"date": "2026-01-01 12:00:00.000000"}}
                  for n in range(count)]
     data["markers"].setdefault(map_id, []).extend(generated)
+
+
+def add_bulk_articles(data, count):
+    generated = [{"id": f"bulk-article-{n:04d}", "title": f"Bulk article {n:04d}",
+                  "slug": f"bulk-article-{n:04d}", "wordcount": 100 + n,
+                  "updateDate": {"date": "2026-01-01 12:00:00.000000"}}
+                 for n in range(count)]
+    data["articles"].extend(generated)
 
 
 def find_entity(groups_of_lists, entity_id):
@@ -84,7 +93,9 @@ def make_handler(data, options):
             entity_id = params.get("id", "")
             if self.forbidden(path, entity_id):
                 return self.reply({"success": False, "error": "forbidden"}, 403)
-            if path == "map":
+            if path == "article":
+                entity = find_entity([data["articles"]], entity_id)
+            elif path == "map":
                 entity = find_entity([data["maps"]], entity_id)
             elif path == "markergroup":
                 entity = find_entity(data["markergroups"].values(), entity_id)
@@ -94,8 +105,9 @@ def make_handler(data, options):
                 return self.reply({"success": False, "error": "unknown endpoint"}, 404)
             if entity is None:
                 return self.reply({"success": False, "error": "not found"}, 404)
-            # granularity 2 answers carry more than the list entry does
-            return self.reply(dict(entity, success=True, granularity=2))
+            # the answer to a single read carries more than the list entry does
+            granularity = int(params.get("granularity") or 2)
+            return self.reply(dict(entity, success=True, granularity=granularity))
 
         def do_POST(self):
             path, params = self.parse()
@@ -109,6 +121,8 @@ def make_handler(data, options):
 
             if path == "world/maps":
                 entries = data["maps"]
+            elif path == "world/articles":
+                entries = data["articles"]
             elif path == "map/layers":
                 entries = data["layers"].get(entity_id, [])
             elif path == "map/markergroups":
@@ -139,14 +153,17 @@ parser.add_argument("--forbid", action="append", default=[], metavar="ENDPOINT[:
                     help="answer 403 for this endpoint, e.g. 'map/markers' or 'map/markers:<uuid>'")
 parser.add_argument("--bulk-markers", type=int, default=0, metavar="N",
                     help="add N generated markers to the first map, to force paging")
+parser.add_argument("--bulk-articles", type=int, default=0, metavar="N",
+                    help="add N generated articles, to force paging")
 parser.add_argument("--quiet", action="store_true", help="do not log requests")
 options = parser.parse_args()
 
 fixture = load_fixture(options.data)
 add_bulk_markers(fixture, options.bulk_markers)
+add_bulk_articles(fixture, options.bulk_articles)
 server = HTTPServer(("127.0.0.1", options.port), make_handler(fixture, options))
 print(f"Mock WA API on http://127.0.0.1:{options.port} using {options.data}")
-print(f"  maps: {len(fixture['maps'])}, short-pages: {options.short_pages}, forbid: {options.forbid or 'none'}")
+print(f"  maps: {len(fixture['maps'])}, articles: {len(fixture['articles'])}, short-pages: {options.short_pages}, forbid: {options.forbid or 'none'}")
 try:
     server.serve_forever()
 except KeyboardInterrupt:
