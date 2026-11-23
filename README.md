@@ -1084,3 +1084,8 @@ it is not in git).
 6. review `<world_name>/deploy/<article-slug>.json`
 7. `python3 deploy.py --dry-run`
 8. `python3 deploy.py --validate`
+
+
+# License
+
+[Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/). The full text is in [LICENSE](LICENSE).
